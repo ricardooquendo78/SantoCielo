@@ -23,7 +23,7 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   role: { type: String, enum: ['admin', 'worker'], required: true }
 });
-UserSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc, ret) => { ret.id = ret._id; delete ret._id; } });
+UserSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
 const User = mongoose.model('User', UserSchema);
 
 const AppointmentSchema = new mongoose.Schema({
@@ -38,14 +38,14 @@ const AppointmentSchema = new mongoose.Schema({
   payment_method: { type: String },
   payment_proof: { type: String }
 });
-AppointmentSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc, ret) => { ret.id = ret._id; delete ret._id; } });
+AppointmentSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
 const Appointment = mongoose.model('Appointment', AppointmentSchema);
 
 const ServiceSchema = new mongoose.Schema({
   name: { type: String, unique: true, required: true },
   price: { type: Number, required: true }
 });
-ServiceSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc, ret) => { ret.id = ret._id; delete ret._id; } });
+ServiceSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
 const Service = mongoose.model('Service', ServiceSchema);
 
 const LoanSchema = new mongoose.Schema({
@@ -54,7 +54,7 @@ const LoanSchema = new mongoose.Schema({
   observation: { type: String },
   date: { type: String }
 });
-LoanSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc, ret) => { ret.id = ret._id; delete ret._id; } });
+LoanSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
 const Loan = mongoose.model('Loan', LoanSchema);
 
 const app = express();
@@ -327,7 +327,7 @@ if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
 }
 
 if (process.env.VERCEL !== '1') {
-  app.listen(PORT, '0.0.0.0', () => { console.log(`Server running on port ${PORT}`); });
+  app.listen(Number(PORT), '0.0.0.0', () => { console.log(`Server running on port ${PORT}`); });
 }
 
 export default app;
