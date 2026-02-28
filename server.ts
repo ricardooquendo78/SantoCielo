@@ -116,6 +116,15 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ token, user: { id: user._id, email: user.email, role: user.role, name: user.name } });
 });
 
+app.get('/api/auth/can-register', async (req, res) => {
+  try {
+    const userCount = await User.countDocuments();
+    res.json({ canRegister: userCount === 0 });
+  } catch (err) {
+    res.json({ canRegister: false });
+  }
+});
+
 // Appointment Routes
 app.get('/api/appointments/today', async (req, res) => {
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });

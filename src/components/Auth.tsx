@@ -14,6 +14,14 @@ export default function Auth({ onLogin }: AuthProps) {
   const [role, setRole] = useState<Role>('worker');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [canRegister, setCanRegister] = useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/auth/can-register')
+      .then(res => res.json())
+      .then(data => setCanRegister(data.canRegister))
+      .catch(() => setCanRegister(false));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +38,12 @@ export default function Auth({ onLogin }: AuthProps) {
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error('Error al conectar con el servidor. Por favor verifica tu conexión.');
+      }
 
       if (!res.ok) throw new Error(data.error || 'Algo salió mal');
 
@@ -56,11 +69,28 @@ export default function Auth({ onLogin }: AuthProps) {
           </div>
           <h2 className="text-3xl font-serif font-bold text-center">Santo Cielo</h2>
           <p className="text-[#8E9299] text-center mt-2">
-            {isLogin ? 'Bienvenida de nuevo' : 'Crea tu cuenta de trabajadora'}
+            {isLogin ? 'Bienvenida de nuevo' : 'Crea tu primera cuenta admin'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {!isLogin && (
+            <>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#8E9299] mb-2 px-1">Nombre Completo</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8E9299]" size={18} />
+                  <input
+                    type="text" value={name} onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-[#f5f5f0] border-none rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-[#C16991] transition-all"
+                    placeholder="Tu nombre" required
+                  />
+                </div>
+              </div>
+              <input type="hidden" value="admin" />
+            </>
+          )}
+
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#8E9299] mb-2 px-1">Correo Electrónico</label>
             <div className="relative">
@@ -98,14 +128,25 @@ export default function Auth({ onLogin }: AuthProps) {
             disabled={loading}
             className="w-full bg-[#C16991] text-white rounded-2xl py-4 font-bold shadow-lg shadow-[#C16991]/20 hover:bg-[#A14971] transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
           >
-            {loading ? 'Procesando...' : 'Entrar'}
+            {loading ? 'Procesando...' : isLogin ? 'Entrar' : 'Registrar Admin'}
             {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>
 
-        <p className="text-center mt-8 text-sm text-[#8E9299]">
-          Si no tienes cuenta, contacta a la administradora.
-        </p>
+        {(canRegister || !isLogin) && (
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="w-full mt-6 text-[#C16991] font-bold text-sm hover:underline"
+          >
+            {isLogin ? '¿No hay cuentas? Registrar primer Admin' : 'Volver al Login'}
+          </button>
+        )}
+
+        {isLogin && !canRegister && (
+          <p className="text-center mt-8 text-sm text-[#8E9299]">
+            Si no tienes cuenta, contacta a la administradora.
+          </p>
+        )}
       </div>
     </div>
   );
