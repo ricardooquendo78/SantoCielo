@@ -1,0 +1,5 @@
+{
+  "name": "Nail Spa Manager",
+  "description": "Sistema de gestión para spa de uñas con roles de administradora y trabajadoras, control de citas y liquidación de ganancias.",
+  "requestFramePermissions": []
+}
