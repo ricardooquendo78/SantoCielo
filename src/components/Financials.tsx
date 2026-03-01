@@ -12,6 +12,7 @@ export default function Financials({ token }: FinancialsProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProof, setSelectedProof] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/financials', {
@@ -193,10 +194,20 @@ export default function Financials({ token }: FinancialsProps) {
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <span className={`text-xs font-bold uppercase px-2 py-1 rounded-full ${apt.payment_method === 'cash' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
-                      {apt.payment_method === 'cash' ? 'Efectivo' : 'Transf.'}
-                    </span>
+                    {apt.payment_method === 'transfer' && apt.payment_proof ? (
+                      <button
+                        onClick={() => setSelectedProof(apt.payment_proof!)}
+                        className="text-xs font-bold uppercase px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer border border-blue-200 shadow-sm"
+                        title="Ver comprobante de transferencia"
+                      >
+                        Transf. 📸
+                      </button>
+                    ) : (
+                      <span className={`text-xs font-bold uppercase px-2 py-1 rounded-full ${apt.payment_method === 'cash' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                        }`}>
+                        {apt.payment_method === 'cash' ? 'Efectivo' : 'Transf.'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-8 py-5 text-right font-bold">
                     ${apt.price.toLocaleString()}
@@ -244,6 +255,28 @@ export default function Financials({ token }: FinancialsProps) {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Proof Modal */}
+      {selectedProof && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200" onClick={() => setSelectedProof(null)}>
+          <div className="relative max-w-xl w-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
+            <div className="w-full flex justify-between items-center mb-4 text-white">
+              <h3 className="font-serif font-bold text-xl">Comprobante de Pago</h3>
+              <button
+                onClick={() => setSelectedProof(null)}
+                className="hover:bg-white/20 rounded-full p-2 transition-colors focus:ring-2 focus:ring-white/50"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <img
+              src={selectedProof}
+              alt="Comprobante"
+              className="w-full h-auto max-h-[80vh] object-contain rounded-2xl shadow-2xl bg-[#fdfaf6]"
+            />
           </div>
         </div>
       )}

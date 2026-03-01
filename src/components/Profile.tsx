@@ -615,11 +615,27 @@ export default function Profile({ user, token }: ProfileProps) {
                       ) : (
                         <>
                           <ImageIcon className="text-[#e5e5e5] mb-2" size={32} />
-                          <p className="text-xs text-[#8E9299] text-center">Haz clic para subir foto del comprobante</p>
-                          <input
-                            type="file" accept="image/*" onChange={handleFileChange}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                          />
+                          <p className="text-xs text-[#8E9299] text-center mb-4">Selecciona una opción para subir el comprobante</p>
+
+                          <div className="flex gap-4 w-full px-4 relative z-10">
+                            <label className="flex-1 bg-white border border-[#f0f0f0] rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer hover:border-[#C16991] transition-colors shadow-sm">
+                              <ImageIcon size={20} className="text-[#C16991]" />
+                              <span className="text-[10px] font-bold text-gray-600">Galería</span>
+                              <input
+                                type="file" accept="image/*" onChange={handleFileChange}
+                                className="hidden"
+                              />
+                            </label>
+
+                            <label className="flex-1 bg-white border border-[#f0f0f0] rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer hover:border-[#C16991] transition-colors shadow-sm">
+                              <span className="text-xl">📸</span>
+                              <span className="text-[10px] font-bold text-gray-600">Tomar Foto</span>
+                              <input
+                                type="file" accept="image/*" capture="environment" onChange={handleFileChange}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
                         </>
                       )}
                     </div>

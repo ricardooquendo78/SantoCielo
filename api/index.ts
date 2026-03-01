@@ -299,7 +299,16 @@ app.delete('/api/loans/:id', authenticateToken, async (req: any, res) => {
     try {
         const loan = await Loan.findById(id);
         if (!loan) return res.status(404).json({ error: 'Not found' });
-        if (req.user.role !== 'admin' && loan.worker_id.toString() !== req.user.id) return res.sendStatus(403);
+        if (req.user.role !== 'admin') {
+            if (loan.worker_id.toString() !== req.user.id) return res.sendStatus(403);
+
+            // Check if more than 2 hours have passed
+            const loanDate = new Date(loan.date.replace(' ', 'T'));
+            const hoursPassed = (new Date().getTime() - loanDate.getTime()) / (1000 * 60 * 60);
+            if (hoursPassed >= 2) {
+                return res.status(400).json({ error: 'No puedes eliminar un préstamo después de 2 horas. Contacta al administrador.' });
+            }
+        }
         await Loan.findByIdAndDelete(id);
         res.json({ success: true });
     } catch (err) {
