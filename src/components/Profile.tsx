@@ -397,80 +397,96 @@ export default function Profile({ user, token }: ProfileProps) {
               <p className="text-[#8E9299]">No tienes citas registradas.</p>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {appointments.map(apt => (
-                <div key={apt.id} className={`bg-white rounded-3xl p-6 shadow-sm border border-[#f0f0f0] transition-all ${apt.status === 'cancelled' ? 'opacity-50 grayscale' : ''}`}>
-                  <div className="flex flex-col sm:flex-row justify-between gap-4">
-                    <div className="flex gap-4">
-                      <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-bold ${apt.status === 'completed' ? 'bg-purple-50 text-purple-600' :
-                        apt.status === 'cancelled' ? 'bg-gray-100 text-gray-500' : 'bg-[#f5f5f0] text-[#C16991]'
-                        }`}>
-                        <span className="text-xs">{format(new Date(apt.date.replace(/-/g, '/')), 'MMM', { locale: es })}</span>
-                        <span className="text-lg leading-none">{format(new Date(apt.date.replace(/-/g, '/')), 'dd')}</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-lg">{apt.service_name}</h4>
-                        <p className="text-[#8E9299] text-sm flex items-center gap-1">
-                          <span>{formatTime12h(apt.time)}</span> • <span>{apt.client_name}</span>
-                          {apt.client_phone && (
-                            <span className="bg-[#C16991]/10 text-[#C16991] px-2 py-0.5 rounded-lg text-[10px] font-bold ml-1">
-                              {apt.client_phone}
-                            </span>
-                          )}
-                        </p>
-                      </div>
+            <div className="space-y-8">
+              {[
+                { title: 'Por Realizar', items: appointments.filter(a => a.status === 'pending') },
+                { title: 'Realizadas', items: appointments.filter(a => a.status !== 'pending') }
+              ].map(group => (
+                <div key={group.title}>
+                  <h3 className="text-xl font-serif font-bold text-[#4a4a4a] mb-4 px-2">{group.title}</h3>
+                  {group.items.length === 0 ? (
+                    <div className="bg-white rounded-[32px] p-8 text-center border border-dashed border-[#e5e5e5]">
+                      <p className="text-[#8E9299]">No hay citas en esta categoría.</p>
                     </div>
+                  ) : (
+                    <div className="grid gap-4">
+                      {group.items.map(apt => (
+                        <div key={apt.id} className={`bg-white rounded-3xl p-6 shadow-sm border border-[#f0f0f0] transition-all ${apt.status === 'cancelled' ? 'opacity-50 grayscale' : ''}`}>
+                          <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            <div className="flex gap-4">
+                              <div className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-bold ${apt.status === 'completed' ? 'bg-purple-50 text-purple-600' :
+                                apt.status === 'cancelled' ? 'bg-gray-100 text-gray-500' : 'bg-[#f5f5f0] text-[#C16991]'
+                                }`}>
+                                <span className="text-xs">{format(new Date(apt.date.replace(/-/g, '/')), 'MMM', { locale: es })}</span>
+                                <span className="text-lg leading-none">{format(new Date(apt.date.replace(/-/g, '/')), 'dd')}</span>
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-lg">{apt.service_name}</h4>
+                                <p className="text-[#8E9299] text-sm flex items-center gap-1">
+                                  <span>{formatTime12h(apt.time)}</span> • <span>{apt.client_name}</span>
+                                  {apt.client_phone && (
+                                    <span className="bg-[#C16991]/10 text-[#C16991] px-2 py-0.5 rounded-lg text-[10px] font-bold ml-1">
+                                      {apt.client_phone}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
 
-                    <div className="flex items-center gap-3 self-end sm:self-center">
-                      <span className="font-bold text-lg mr-2">${apt.price.toLocaleString()}</span>
+                            <div className="flex items-center gap-3 self-end sm:self-center">
+                              <span className="font-bold text-lg mr-2">${apt.price.toLocaleString()}</span>
 
-                      {apt.status === 'pending' && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditingAppointment(apt);
-                              setClientName(apt.client_name);
-                              setClientPhone(apt.client_phone || '');
-                              setServiceName(apt.service_name);
-                              setPrice(apt.price.toString());
-                              setDate(apt.date);
-                              setTime(apt.time);
-                              setShowAddModal(true);
-                            }}
-                            className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors"
-                            title="Editar"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => setShowCompleteModal(apt)}
-                            className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors shadow-lg shadow-green-500/20"
-                            title="Completar"
-                          >
-                            <Check size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleUpdateStatus(apt.id, 'cancelled')}
-                            className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors"
-                            title="Cancelar"
-                          >
-                            <X size={18} />
-                          </button>
-                        </>
-                      )}
+                              {apt.status === 'pending' && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingAppointment(apt);
+                                      setClientName(apt.client_name);
+                                      setClientPhone(apt.client_phone || '');
+                                      setServiceName(apt.service_name);
+                                      setPrice(apt.price.toString());
+                                      setDate(apt.date);
+                                      setTime(apt.time);
+                                      setShowAddModal(true);
+                                    }}
+                                    className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors"
+                                    title="Editar"
+                                  >
+                                    <Edit2 size={18} />
+                                  </button>
+                                  <button
+                                    onClick={() => setShowCompleteModal(apt)}
+                                    className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors shadow-lg shadow-green-500/20"
+                                    title="Completar"
+                                  >
+                                    <Check size={18} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateStatus(apt.id, 'cancelled')}
+                                    className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-100 transition-colors"
+                                    title="Cancelar"
+                                  >
+                                    <X size={18} />
+                                  </button>
+                                </>
+                              )}
 
-                      {apt.status === 'completed' && (
-                        <div className="bg-purple-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                          Completada
+                              {apt.status === 'completed' && (
+                                <div className="bg-purple-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                                  Completada
+                                </div>
+                              )}
+                              {apt.status === 'cancelled' && (
+                                <div className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                                  Cancelada
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      {apt.status === 'cancelled' && (
-                        <div className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                          Cancelada
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
