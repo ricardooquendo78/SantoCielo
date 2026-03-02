@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loan, User } from '../types';
-import { Plus, Trash2, Wallet, Calendar, MessageSquare, DollarSign, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Wallet, Calendar, MessageSquare, DollarSign, History, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, differenceInHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 
