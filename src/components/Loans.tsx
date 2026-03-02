@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loan, User } from '../types';
 import { Plus, Trash2, Wallet, Calendar, MessageSquare, DollarSign, History, ChevronDown, ChevronUp, Lock } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, differenceInHours } from 'date-fns';
+import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, differenceInHours, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface LoansProps {
@@ -203,7 +203,12 @@ export default function Loans({ user, token }: LoansProps) {
                                 </div>
 
                                 <div className="flex items-center justify-end">
-                                    {(user.role === 'admin' || differenceInHours(new Date(), new Date(loan.date.replace(' ', 'T'))) < 2) ? (
+                                    {(user.role === 'admin' ||
+                                        (user.role !== 'admin' &&
+                                            differenceInHours(
+                                                new Date(),
+                                                parse(loan.date, 'yyyy-MM-dd HH:mm', new Date())
+                                            ) < 2)) ? (
                                         <button
                                             onClick={() => handleDeleteLoan(loan)}
                                             className="w-10 h-10 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full flex items-center justify-center transition-all bg-gray-50"
