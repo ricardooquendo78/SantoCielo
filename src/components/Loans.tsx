@@ -75,7 +75,7 @@ export default function Loans({ user, token }: LoansProps) {
 
     const handleDeleteLoan = async (loan: Loan) => {
         if (user.role !== 'admin') {
-            const loanDate = new Date(loan.date.replace(' ', 'T'));
+            const loanDate = parse(loan.date, 'yyyy-MM-dd HH:mm', new Date());
             if (differenceInHours(new Date(), loanDate) >= 2) {
                 alert('No puedes eliminar un préstamo después de 2 horas de haberlo registrado. Por favor contacta al administrador.');
                 return;
@@ -204,11 +204,10 @@ export default function Loans({ user, token }: LoansProps) {
 
                                 <div className="flex items-center justify-end">
                                     {(user.role === 'admin' ||
-                                        (user.role !== 'admin' &&
-                                            differenceInHours(
-                                                new Date(),
-                                                parse(loan.date, 'yyyy-MM-dd HH:mm', new Date())
-                                            ) < 2)) ? (
+                                        differenceInHours(
+                                            new Date(),
+                                            parse(loan.date, 'yyyy-MM-dd HH:mm', new Date())
+                                        ) < 2) ? (
                                         <button
                                             onClick={() => handleDeleteLoan(loan)}
                                             className="w-10 h-10 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full flex items-center justify-center transition-all bg-gray-50"

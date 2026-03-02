@@ -1,4 +1,5 @@
 import express from 'express';
+import { parse } from 'date-fns';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -303,7 +304,7 @@ app.delete('/api/loans/:id', authenticateToken, async (req: any, res) => {
             if (loan.worker_id.toString() !== req.user.id) return res.sendStatus(403);
 
             // Check if more than 2 hours have passed
-            const loanDate = new Date(loan.date.replace(' ', 'T'));
+            const loanDate = parse(loan.date, 'yyyy-MM-dd HH:mm', new Date());
             const hoursPassed = (new Date().getTime() - loanDate.getTime()) / (1000 * 60 * 60);
             if (hoursPassed >= 2) {
                 return res.status(400).json({ error: 'No puedes eliminar un préstamo después de 2 horas. Contacta al administrador.' });
