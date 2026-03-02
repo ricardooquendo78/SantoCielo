@@ -358,7 +358,7 @@ export default function Profile({ user, token }: ProfileProps) {
           <p className="text-[#f5f5f0]/70 text-sm font-bold uppercase tracking-widest mb-2">Mis Ganancias Netas</p>
           <h3 className="text-4xl font-serif font-bold">${workerEarnings.toLocaleString()}</h3>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-white/90">
-            <div className="bg-white/10 px-3 py-1 rounded-full border border-white/20">Semana: {format(weekStart, 'd de MMM')} - {format(weekEnd, 'd de MMM')}</div>
+            <div className="bg-white/10 px-3 py-1 rounded-full border border-white/20">Semana: {format(weekStart, 'd MMM', { locale: es })} - {format(weekEnd, 'd MMM', { locale: es })}</div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
             <div className="bg-white/10 px-3 py-1 rounded-full">Mi Bruto (50%): ${(totalMoney * 0.5).toLocaleString()}</div>
