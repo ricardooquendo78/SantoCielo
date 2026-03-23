@@ -24,6 +24,7 @@ export default function Profile({ user, token }: ProfileProps) {
   const [clientPhone, setClientPhone] = useState('');
   const [serviceName, setServiceName] = useState('');
   const [price, setPrice] = useState('');
+  const [serviceRows, setServiceRows] = useState<{id: string, name: string, price: number}[]>([{ id: '1', name: '', price: 0 }]);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [time, setTime] = useState('10:00');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,6 +47,7 @@ export default function Profile({ user, token }: ProfileProps) {
     setClientPhone('');
     setServiceName('');
     setPrice('');
+    setServiceRows([{ id: Date.now().toString(), name: '', price: 0 }]);
     setDate(format(new Date(), 'yyyy-MM-dd'));
     setTime('10:00');
     setEditingAppointment(null);
@@ -445,6 +447,7 @@ export default function Profile({ user, token }: ProfileProps) {
                                       setClientPhone(apt.client_phone || '');
                                       setServiceName(apt.service_name);
                                       setPrice(apt.price.toString());
+                                      setServiceRows([{ id: '1', name: apt.service_name, price: apt.price }]);
                                       setDate(apt.date);
                                       setTime(apt.time);
                                       setShowAddModal(true);
@@ -523,22 +526,64 @@ export default function Profile({ user, token }: ProfileProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Servicio</label>
-                  <select
-                    required
-                    value={serviceName}
-                    onChange={e => {
-                      const selected = services.find(s => s.name === e.target.value);
-                      setServiceName(e.target.value);
-                      if (selected) setPrice(selected.price.toString());
-                    }}
-                    className="w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#C16991] appearance-none"
-                  >
-                    <option value="">Selecciona un servicio</option>
-                    {services.map(s => (
-                      <option key={s.id} value={s.name}>{s.name} - ${s.price.toLocaleString()}</option>
+                  <div className="flex items-center gap-2 mb-1">
+                    <label className="block text-xs font-bold text-[#8E9299] uppercase">Servicio(s)</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setServiceRows([...serviceRows, { id: Date.now().toString(), name: '', price: 0 }])}
+                      className="bg-[#C16991]/10 text-[#C16991] p-1 rounded-full hover:bg-[#C16991]/20 transition-colors"
+                      title="Agregar otro servicio"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {serviceRows.map((row, index) => (
+                      <div key={row.id} className="flex gap-2 relative">
+                        <select
+                          required={index === 0}
+                          value={row.name}
+                          onChange={e => {
+                            const selectedName = e.target.value;
+                            const selectedService = services.find(s => s.name === selectedName);
+                            const updatedPrice = selectedService ? selectedService.price : 0;
+                            
+                            const newRows = [...serviceRows];
+                            newRows[index] = { ...row, name: selectedName, price: updatedPrice };
+                            setServiceRows(newRows);
+                            
+                            const validRows = newRows.filter(r => r.name);
+                            setServiceName(validRows.map(r => r.name).join(' + '));
+                            setPrice(validRows.reduce((sum, r) => sum + r.price, 0).toString());
+                          }}
+                          className="w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#C16991] appearance-none"
+                        >
+                          <option value="">Selecciona un servicio</option>
+                          {row.name && !services.find(s => s.name === row.name) && (
+                            <option value={row.name}>{row.name}</option>
+                          )}
+                          {services.map(s => (
+                            <option key={s.id} value={s.name}>{s.name} - ${s.price.toLocaleString()}</option>
+                          ))}
+                        </select>
+                        {serviceRows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newRows = serviceRows.filter((_, i) => i !== index);
+                              setServiceRows(newRows);
+                              const validRows = newRows.filter(r => r.name);
+                              setServiceName(validRows.map(r => r.name).join(' + '));
+                              setPrice(validRows.reduce((sum, r) => sum + r.price, 0).toString());
+                            }}
+                            className="bg-red-50 text-red-500 px-3 rounded-2xl hover:bg-red-100 transition-colors flex items-center justify-center shrink-0"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
                     ))}
-                  </select>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
