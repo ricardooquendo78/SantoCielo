@@ -3,6 +3,7 @@ import { Appointment, Loan } from '../types';
 import { DollarSign, Calendar, User as UserIcon, CreditCard, Wallet, FileText, Download, TrendingDown, X } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import LoadingSpinner from './LoadingSpinner';
 
 interface FinancialsProps {
   token: string;
@@ -69,7 +70,7 @@ export default function Financials({ token }: FinancialsProps) {
     }
   };
 
-  if (loading) return <div className="py-20 text-center">Cargando resumen financiero...</div>;
+  if (loading) return <LoadingSpinner message="Generando reporte..." />;
 
   return (
     <div className="space-y-8">

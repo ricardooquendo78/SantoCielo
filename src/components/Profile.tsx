@@ -3,6 +3,7 @@ import { User, Appointment, Role, Service, Loan } from '../types';
 import { Plus, Check, X, Edit2, DollarSign, Image as ImageIcon, CreditCard, Wallet, Trash2, UserPlus, Mail, Lock, User as UserIcon } from 'lucide-react';
 import { format, isAfter, isToday, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ProfileProps {
   user: User;
@@ -234,7 +235,7 @@ export default function Profile({ user, token }: ProfileProps) {
     }
   };
 
-  if (loading) return <div className="py-20 text-center">Cargando...</div>;
+  if (loading) return <LoadingSpinner message="Cargando perfil..." />;
 
   if (user.role === 'admin') {
     return (

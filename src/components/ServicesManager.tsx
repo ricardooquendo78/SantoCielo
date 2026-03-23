@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Service } from '../types';
 import { Plus, Trash2, Sparkle, DollarSign } from 'lucide-react';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ServicesManagerProps {
   token: string;
@@ -57,7 +58,7 @@ export default function ServicesManager({ token }: ServicesManagerProps) {
     }
   };
 
-  if (loading) return <div className="py-20 text-center">Cargando servicios...</div>;
+  if (loading) return <LoadingSpinner message="Cargando catálogo..." />;
 
   return (
     <div className="space-y-8">

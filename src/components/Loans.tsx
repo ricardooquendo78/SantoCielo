@@ -3,6 +3,7 @@ import { Loan, User } from '../types';
 import { Plus, Trash2, Wallet, Calendar, MessageSquare, DollarSign, History, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, differenceInHours, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
+import LoadingSpinner from './LoadingSpinner';
 
 interface LoansProps {
     user: User;
@@ -127,7 +128,7 @@ export default function Loans({ user, token }: LoansProps) {
         }
     });
 
-    if (loading) return <div className="py-20 text-center">Cargando préstamos...</div>;
+    if (loading) return <LoadingSpinner message="Revisando adelantos..." />;
 
     const totalCurrentWeek = currentWeekLoans.reduce((sum, l) => sum + l.amount, 0);
 

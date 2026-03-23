@@ -3,6 +3,7 @@ import { WorkerStats } from '../types';
 import { TrendingUp, Users, Sparkles, PieChart, Wallet, Calendar, X, Filter } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import LoadingSpinner from './LoadingSpinner';
 
 interface AdminProps {
   token: string;
@@ -50,7 +51,7 @@ export default function Admin({ token }: AdminProps) {
   const totalSpaShare = totalRevenue * 0.5;
   const totalLoans = stats.reduce((sum, s) => sum + Number(s.total_loans || 0), 0);
 
-  if (loading) return <div className="py-20 text-center">Cargando estadísticas...</div>;
+  if (loading) return <LoadingSpinner message="Cargando panel de control..." />;
 
   return (
     <div className="space-y-8">

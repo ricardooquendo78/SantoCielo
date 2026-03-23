@@ -8,6 +8,7 @@ import Admin from './components/Admin';
 import ServicesManager from './components/ServicesManager';
 import Financials from './components/Financials';
 import Loans from './components/Loans';
+import LoadingSpinner from './components/LoadingSpinner';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -38,7 +39,7 @@ export default function App() {
     setView('home');
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen">Cargando...</div>;
+  if (loading) return <LoadingSpinner fullScreen />;
 
   if (!user) {
     return <Auth onLogin={handleLogin} />;
