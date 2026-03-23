@@ -186,9 +186,15 @@ export default function Admin({ token }: AdminProps) {
                         <h4 className="text-lg font-bold capitalize">
                           {format(parseISO(item.month + '-01'), 'MMMM yyyy', { locale: es })}
                         </h4>
-                        <div className="text-xs font-bold bg-[#C16991] text-white px-3 py-1 rounded-full">
-                          CERRADO
-                        </div>
+                        {item.month === format(now, 'yyyy-MM') ? (
+                          <div className="text-xs font-bold bg-purple-100 text-purple-600 px-3 py-1 rounded-full border border-purple-200">
+                            EN CURSO
+                          </div>
+                        ) : (
+                          <div className="text-xs font-bold bg-[#C16991] text-white px-3 py-1 rounded-full">
+                            CERRADO
+                          </div>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div>

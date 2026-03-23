@@ -77,7 +77,12 @@ export default function Financials({ token }: FinancialsProps) {
       {/* Daily Summary */}
       <div className="bg-white rounded-[32px] p-8 shadow-sm border border-[#f0f0f0]">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-serif font-bold">Resumen de Hoy</h3>
+          <div>
+            <h3 className="text-2xl font-serif font-bold">Resumen de Hoy</h3>
+            <p className="text-[#8E9299] text-sm capitalize mt-1">
+              {format(now, "EEEE, d 'de' MMMM", { locale: es })}
+            </p>
+          </div>
           <div className="flex flex-col items-end">
             <span className="text-xs font-bold text-[#8E9299] uppercase">Caja Neta</span>
             <div className="bg-rose-50 text-[#C16991] px-4 py-1 rounded-full text-lg font-bold">
