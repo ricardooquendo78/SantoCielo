@@ -378,8 +378,8 @@ export default function Profile({ user, token }: ProfileProps) {
             <h3 className="text-2xl font-serif font-bold text-[#4a4a4a]">{futureAppointments.length}</h3>
           </div>
           <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#f0f0f0] flex flex-col justify-center">
-            <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Caja Neta</p>
-            <h3 className="text-2xl font-serif font-bold text-purple-600">${workerEarnings.toLocaleString()}</h3>
+            <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Citas Completadas</p>
+            <h3 className="text-2xl font-serif font-bold text-purple-600">{completedServices.length}</h3>
           </div>
           <button
             onClick={() => { resetAppointmentForm(); setShowAddModal(true); }}

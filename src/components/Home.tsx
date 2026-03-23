@@ -3,6 +3,7 @@ import { Appointment } from '../types';
 import { Clock, User as UserIcon, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import LoadingSpinner from './LoadingSpinner';
 
 export default function Home() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -29,7 +30,7 @@ export default function Home() {
     }
   };
 
-  if (loading) return <div className="py-20 text-center text-[#8E9299]">Cargando citas de hoy...</div>;
+  if (loading) return <LoadingSpinner message="Cargando citas de hoy..." />;
 
   return (
     <div className="space-y-6">
