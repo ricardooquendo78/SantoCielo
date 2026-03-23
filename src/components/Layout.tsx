@@ -14,9 +14,9 @@ interface LayoutProps {
 
 export default function Layout({ user, currentView, setView, onLogout, children }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-[#fdfaf6] text-[#4a4a4a] font-sans">
+    <div className="h-[100dvh] flex flex-col md:flex-row bg-[#fdfaf6] text-[#4a4a4a] font-sans overflow-hidden">
       {/* Sidebar / Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e5e5e5] flex items-center md:top-0 md:bottom-auto md:flex-col md:w-64 md:h-screen md:border-t-0 md:border-r md:justify-start md:py-10 z-50 overflow-x-auto scrollbar-hide">
+      <nav className="order-last md:order-first shrink-0 bg-white border-t border-[#e5e5e5] flex items-center md:flex-col md:w-64 md:h-full md:border-t-0 md:border-r md:justify-start md:py-10 z-50 overflow-x-auto scrollbar-hide">
         <div className="flex flex-row md:flex-col items-center justify-between md:justify-start w-full min-w-max md:min-w-0 px-2 py-2 md:px-4 md:gap-2">
           <div className="hidden md:flex items-center gap-3 mb-12 px-4">
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center overflow-hidden shadow-sm border border-[#f0f0f0]">
@@ -98,8 +98,8 @@ export default function Layout({ user, currentView, setView, onLogout, children 
       </nav>
 
       {/* Main Content */}
-      <main className="pb-24 md:pb-0 md:pl-64 min-h-screen">
-        <header className="bg-white border-b border-[#e5e5e5] px-6 py-4 sticky top-0 z-40 flex justify-between items-center">
+      <main className="flex-1 overflow-y-auto min-h-0 relative flex flex-col">
+        <header className="bg-white border-b border-[#e5e5e5] px-6 py-4 sticky top-0 z-40 flex shrink-0 justify-between items-center shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white rounded-lg overflow-hidden border border-[#f0f0f0] md:hidden">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
@@ -134,7 +134,7 @@ export default function Layout({ user, currentView, setView, onLogout, children 
           </div>
         </header>
 
-        <div className="p-6 max-w-5xl mx-auto">
+        <div className="p-6 max-w-5xl mx-auto w-full flex-1">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
