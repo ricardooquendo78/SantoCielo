@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Role } from '../types';
 import { Sparkles, Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
+import logoSantoCielo from '../imgs/logoSantoCielo.jpeg';
 
 interface AuthProps {
   onLogin: (user: User, token: string) => void;
@@ -64,8 +65,8 @@ export default function Auth({ onLogin }: AuthProps) {
     <div className="min-h-screen bg-[#fdfaf6] flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-[32px] shadow-xl shadow-black/5 p-8 md:p-12">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 bg-[#C16991] rounded-full flex items-center justify-center text-white mb-4 shadow-lg shadow-[#C16991]/20">
-            <Sparkles size={32} />
+          <div className="w-28 h-28 rounded-full overflow-hidden mb-4 shadow-xl shadow-[#C16991]/20 border-4 border-white bg-white">
+            <img src={logoSantoCielo} alt="Santo Cielo Logo" className="w-full h-full object-cover" />
           </div>
           <h2 className="text-3xl font-serif font-bold text-center">Santo Cielo</h2>
           <p className="text-[#8E9299] text-center mt-2">
