@@ -97,9 +97,10 @@ export default function Layout({ user, currentView, setView, onLogout, children 
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto min-h-0 relative flex flex-col">
-        <header className="bg-white border-b border-[#e5e5e5] px-6 py-4 sticky top-0 z-40 flex shrink-0 justify-between items-center shadow-sm">
+      {/* Main Area Wrapper */}
+      <div className="flex-1 flex flex-col min-h-0 min-w-0">
+        {/* Top Header */}
+        <header className="bg-white border-b border-[#e5e5e5] px-6 py-4 flex shrink-0 justify-between items-center shadow-sm z-40">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-white rounded-lg overflow-hidden border border-[#f0f0f0] md:hidden">
               <img src={logo} alt="Logo" className="w-full h-full object-contain" />
@@ -134,16 +135,19 @@ export default function Layout({ user, currentView, setView, onLogout, children 
           </div>
         </header>
 
-        <div className="p-6 max-w-5xl mx-auto w-full flex-1">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            {children}
-          </motion.div>
-        </div>
-      </main>
+        {/* Scrollable Content Area */}
+        <main className="flex-1 overflow-y-auto relative custom-scrollbar">
+          <div className="p-6 max-w-5xl mx-auto w-full h-full">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              {children}
+            </motion.div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
