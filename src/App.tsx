@@ -47,7 +47,7 @@ export default function App() {
 
   return (
     <Layout user={user} currentView={view} setView={setView} onLogout={handleLogout}>
-      {view === 'home' && <Home />}
+      {view === 'home' && <Home user={user} />}
       {view === 'profile' && <Profile user={user} token={token!} />}
       {view === 'loans' && <Loans user={user} token={token!} />}
       {view === 'services' && user.role === 'admin' && <ServicesManager token={token!} />}

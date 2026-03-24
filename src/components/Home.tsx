@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Appointment } from '../types';
+import { Appointment, User } from '../types';
 import { Clock, User as UserIcon, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from './LoadingSpinner';
 
-export default function Home() {
+interface HomeProps {
+  user: User;
+}
+
+export default function Home({ user }: HomeProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,15 +73,21 @@ export default function Home() {
                     <UserIcon size={14} />
                     <span>Cliente: {apt.client_name}</span>
                     {apt.client_phone && (
-                      <a
-                        href={`https://wa.me/${apt.client_phone.replace(/\s+/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg ml-2 hover:bg-rose-100 transition-colors"
-                        title="Contactar por WhatsApp"
-                      >
-                        <span className="text-xs font-bold">{apt.client_phone}</span>
-                      </a>
+                      user.role === 'admin' ? (
+                        <a
+                          href={`https://wa.me/${apt.client_phone.replace(/\s+/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg ml-2 hover:bg-rose-100 transition-colors"
+                          title="Contactar por WhatsApp"
+                        >
+                          <span className="text-xs font-bold">{apt.client_phone}</span>
+                        </a>
+                      ) : (
+                        <span className="flex items-center gap-1 bg-rose-50 text-rose-600 px-2 py-0.5 rounded-lg ml-2 transition-colors">
+                          <span className="text-xs font-bold">{apt.client_phone}</span>
+                        </span>
+                      )
                     )}
                   </div>
                 </div>
