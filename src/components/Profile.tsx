@@ -99,17 +99,8 @@ export default function Profile({ user, token }: ProfileProps) {
     const now = new Date();
     const selectedDateTime = new Date(`${date}T${time}`);
 
-    // Si la fecha es hoy, verificar la hora
-    if (date === format(now, 'yyyy-MM-dd')) {
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const [selectedHour, selectedMinute] = time.split(':').map(Number);
-
-      if (selectedHour < currentHour || (selectedHour === currentHour && selectedMinute < currentMinute)) {
-        setAppointmentError('No se pueden agendar citas en horas pasadas.');
-        return;
-      }
-    } else if (new Date(date) < new Date(format(now, 'yyyy-MM-dd'))) {
+    // Validar que no sea en días pasados, permitiendo horas pasadas hoy
+    if (new Date(date) < new Date(format(now, 'yyyy-MM-dd'))) {
       setAppointmentError('No se pueden agendar citas en días pasados.');
       return;
     }
