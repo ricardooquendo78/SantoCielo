@@ -99,12 +99,6 @@ export default function Profile({ user, token }: ProfileProps) {
     const now = new Date();
     const selectedDateTime = new Date(`${date}T${time}`);
 
-    // Validar que no sea en días pasados, permitiendo horas pasadas hoy
-    if (new Date(date) < new Date(format(now, 'yyyy-MM-dd'))) {
-      setAppointmentError('No se pueden agendar citas en días pasados.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     const url = editingAppointment ? `/api/appointments/${editingAppointment.id}` : '/api/appointments';
