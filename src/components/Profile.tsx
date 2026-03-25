@@ -95,9 +95,12 @@ export default function Profile({ user, token }: ProfileProps) {
     if (isSubmitting) return;
     setAppointmentError('');
 
-    // Validación de fecha y hora
-    const now = new Date();
-    const selectedDateTime = new Date(`${date}T${time}`);
+    // Validación de fecha
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    if (!editingAppointment && date < todayStr) {
+      setAppointmentError('No se pueden crear citas en días pasados.');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -200,9 +203,50 @@ export default function Profile({ user, token }: ProfileProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona una imagen válida.');
+        return;
+      }
+      
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPaymentProof(reader.result as string);
+      reader.onloadend = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Max dimensions
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Compress heavily: 0.6 quality is enough for payment proofs
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            setPaymentProof(dataUrl);
+          } else {
+            // Fallback if canvas fails
+            setPaymentProof(reader.result as string);
+          }
+        };
+        img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -592,6 +636,7 @@ export default function Profile({ user, token }: ProfileProps) {
                   <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Fecha</label>
                   <input
                     type="date" required value={date} onChange={e => setDate(e.target.value)}
+                    min={!editingAppointment ? format(new Date(), 'yyyy-MM-dd') : undefined}
                     className="w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#C16991]"
                   />
                 </div>
