@@ -16,7 +16,8 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     name: { type: String, required: true },
-    role: { type: String, enum: ['admin', 'worker'], required: true }
+    role: { type: String, enum: ['admin', 'worker'], required: true },
+    profile_picture: { type: String }
 });
 UserSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
@@ -124,7 +125,7 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
         const token = jwt.sign({ id: user._id, email: user.email, role: user.role, name: user.name }, JWT_SECRET);
-        res.json({ token, user: { id: user._id, email: user.email, role: user.role, name: user.name } });
+        res.json({ token, user: { id: user._id, email: user.email, role: user.role, name: user.name, profile_picture: user.profile_picture } });
     } catch (err) {
         res.status(500).json({ error: 'Login error' });
     }
@@ -136,6 +137,19 @@ app.get('/api/auth/can-register', async (req, res) => {
         res.json({ canRegister: userCount === 0 });
     } catch (err) {
         res.json({ canRegister: false });
+    }
+});
+
+app.put('/api/users/profile-picture', authenticateToken, async (req: any, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ error: 'Not found' });
+        
+        user.profile_picture = req.body.profile_picture;
+        await user.save();
+        res.json({ success: true, profile_picture: user.profile_picture });
+    } catch (err) {
+        res.status(500).json({ error: 'Error updating picture' });
     }
 });
 

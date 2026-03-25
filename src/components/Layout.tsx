@@ -6,13 +6,73 @@ import logo from '../imgs/logoSantoCielo.jpeg';
 
 interface LayoutProps {
   user: User;
+  setUser?: React.Dispatch<React.SetStateAction<User | null>>;
   currentView: 'home' | 'profile' | 'admin' | 'services' | 'financials' | 'loans';
   setView: (view: 'home' | 'profile' | 'admin' | 'services' | 'financials' | 'loans') => void;
   onLogout: () => void;
   children: React.ReactNode;
 }
 
-export default function Layout({ user, currentView, setView, onLogout, children }: LayoutProps) {
+export default function Layout({ user, setUser, currentView, setView, onLogout, children }: LayoutProps) {
+  const handleProfilePictureUpdate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona una imagen válida.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = async (event) => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 400;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            
+            try {
+              const res = await fetch('/api/users/profile-picture', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ profile_picture: dataUrl })
+              });
+              if (res.ok) {
+                const data = await res.json();
+                if (setUser) {
+                  const updatedUser = { ...user, profile_picture: data.profile_picture };
+                  setUser(updatedUser);
+                  localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+              }
+            } catch(error) { console.error(error); }
+          }
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row bg-[#fdfaf6] text-[#4a4a4a] font-sans overflow-hidden">
       {/* Sidebar / Navigation */}
@@ -120,9 +180,13 @@ export default function Layout({ user, currentView, setView, onLogout, children 
                 <p className="text-sm font-bold">{user.name}</p>
                 <p className="text-xs text-gray-500 capitalize">{user.role}</p>
               </div>
-              <div className="w-10 h-10 bg-[#e5e5e5] rounded-full flex items-center justify-center overflow-hidden border border-gray-200">
-                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt="avatar" />
-              </div>
+              <label className="w-10 h-10 bg-[#e5e5e5] rounded-full flex items-center justify-center overflow-hidden border border-gray-200 cursor-pointer relative group shrink-0">
+                <input type="file" accept="image/*" onChange={handleProfilePictureUpdate} className="hidden" />
+                <img src={user.profile_picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt="avatar" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                   <span className="text-[10px] text-white font-bold text-center leading-tight">Edit</span>
+                </div>
+              </label>
             </div>
 
             <button

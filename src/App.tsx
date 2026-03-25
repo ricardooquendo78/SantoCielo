@@ -46,7 +46,7 @@ export default function App() {
   }
 
   return (
-    <Layout user={user} currentView={view} setView={setView} onLogout={handleLogout}>
+    <Layout user={user} setUser={setUser} currentView={view} setView={setView} onLogout={handleLogout}>
       {view === 'home' && <Home user={user} />}
       {view === 'profile' && <Profile user={user} token={token!} />}
       {view === 'loans' && <Loans user={user} token={token!} />}

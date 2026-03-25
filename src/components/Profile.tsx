@@ -284,7 +284,7 @@ export default function Profile({ user, token }: ProfileProps) {
             <div key={worker.id} className="bg-white rounded-3xl p-6 shadow-sm border border-[#f0f0f0] flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#f5f5f0] rounded-full flex items-center justify-center overflow-hidden">
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${worker.name}`} alt="avatar" />
+                  <img src={worker.profile_picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${worker.name}`} alt="avatar" className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <h4 className="font-bold text-lg">{worker.name}</h4>

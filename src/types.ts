@@ -5,6 +5,7 @@ export interface User {
     email: string;
     name: string;
     role: Role;
+    profile_picture?: string;
 }
 
 export interface Appointment {
