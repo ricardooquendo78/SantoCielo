@@ -628,7 +628,7 @@ export default function Profile({ user, token }: ProfileProps) {
                     <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Hora</label>
                     <input
                       type="time" required value={time} onChange={e => setTime(e.target.value)}
-                      className="w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#C16991]"
+                      className="w-[95%] sm:w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-3 focus:ring-2 focus:ring-[#C16991]"
                     />
                   </div>
                 </div>
@@ -637,7 +637,7 @@ export default function Profile({ user, token }: ProfileProps) {
                   <input
                     type="date" required value={date} onChange={e => setDate(e.target.value)}
                     min={!editingAppointment ? format(new Date(), 'yyyy-MM-dd') : undefined}
-                    className="w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#C16991]"
+                    className="w-[95%] sm:w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-3 focus:ring-2 focus:ring-[#C16991]"
                   />
                 </div>
 
