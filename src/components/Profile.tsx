@@ -486,8 +486,8 @@ export default function Profile({ user, token }: ProfileProps) {
       {/* Add Modal */}
       {
         showAddModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6">
+            <div className="bg-white w-full max-w-md rounded-[32px] p-6 sm:p-8 shadow-2xl max-h-[95vh] overflow-y-auto">
               <h3 className="text-2xl font-serif font-bold mb-6">{editingAppointment ? 'Editar Cita' : 'Nueva Cita'}</h3>
               {appointmentError && (
                 <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm mb-4 border border-red-100 flex items-center gap-2">
@@ -525,7 +525,7 @@ export default function Profile({ user, token }: ProfileProps) {
                   </div>
                   <div className="space-y-2">
                     {serviceRows.map((row, index) => (
-                      <div key={row.id} className="flex gap-2 relative">
+                       <div key={row.id} className="flex gap-2 relative">
                         <select
                           required={index === 0}
                           value={row.name}
@@ -571,7 +571,7 @@ export default function Profile({ user, token }: ProfileProps) {
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Precio</label>
                     <input
