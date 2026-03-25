@@ -143,7 +143,7 @@ app.get('/api/auth/can-register', async (req, res) => {
 app.get('/api/appointments/today', async (req, res) => {
     try {
         const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
-        const appointments = await Appointment.find({ date: today, status: 'pending' })
+        const appointments = await Appointment.find({ date: today })
             .populate('worker_id', 'name')
             .sort({ time: 1 });
         const formatted = appointments.map((a: any) => ({
