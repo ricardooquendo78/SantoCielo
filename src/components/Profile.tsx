@@ -95,9 +95,12 @@ export default function Profile({ user, token }: ProfileProps) {
     if (isSubmitting) return;
     setAppointmentError('');
 
-    // Validación de fecha y hora
-    const now = new Date();
-    const selectedDateTime = new Date(`${date}T${time}`);
+    // Validación de fecha
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    if (!editingAppointment && date < todayStr) {
+      setAppointmentError('No se pueden crear citas en días pasados.');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -633,6 +636,7 @@ export default function Profile({ user, token }: ProfileProps) {
                   <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Fecha</label>
                   <input
                     type="date" required value={date} onChange={e => setDate(e.target.value)}
+                    min={!editingAppointment ? format(new Date(), 'yyyy-MM-dd') : undefined}
                     className="w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#C16991]"
                   />
                 </div>
