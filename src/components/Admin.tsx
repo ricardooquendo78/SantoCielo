@@ -13,6 +13,7 @@ export default function Admin({ token }: AdminProps) {
   const [stats, setStats] = useState<WorkerStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+  const [showWeeklySummary, setShowWeeklySummary] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -63,53 +64,27 @@ export default function Admin({ token }: AdminProps) {
             <p>Rendimiento Semanal</p>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-          <div className="bg-rose-50 text-[#C16991] px-4 py-2 rounded-2xl text-xs font-bold border border-[#C16991]/10">
-            Semana: {format(parseISO(startDate), 'd MMM')} - {format(parseISO(endDate), 'd MMM, yyyy', { locale: es })}
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+            <div className="bg-rose-50 text-[#C16991] px-4 py-2 rounded-2xl text-xs font-bold border border-[#C16991]/10">
+              Semana: {format(parseISO(startDate), 'd MMM')} - {format(parseISO(endDate), 'd MMM, yyyy', { locale: es })}
+            </div>
+            <button
+              onClick={() => { setShowHistory(true); fetchHistory(); }}
+              className="bg-white text-[#C16991] border border-[#C16991] font-bold py-2 px-6 rounded-2xl flex items-center gap-2 hover:bg-purple-50 transition-colors shadow-sm h-[52px]"
+            >
+              <Calendar size={18} /> Ver Historial Mensual
+            </button>
           </div>
           <button
-            onClick={() => { setShowHistory(true); fetchHistory(); }}
-            className="bg-white text-[#C16991] border border-[#C16991] font-bold py-2 px-6 rounded-2xl flex items-center gap-2 hover:bg-purple-50 transition-colors shadow-sm h-[52px]"
+            onClick={() => setShowWeeklySummary(true)}
+            className="bg-[#C16991] text-white font-bold py-2 px-6 rounded-2xl flex items-center gap-2 hover:bg-[#A14971] transition-all shadow-md shadow-[#C16991]/20 h-[52px] w-full sm:w-auto mt-2"
           >
-            <Calendar size={18} /> Ver Historial Mensual
+            <TrendingUp size={18} /> Resumen semanal
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#f0f0f0]">
-          <div className="w-12 h-12 bg-rose-50 text-[#C16991] rounded-2xl flex items-center justify-center mb-4">
-            <TrendingUp size={24} />
-          </div>
-          <p className="text-[#8E9299] text-xs font-bold uppercase tracking-widest mb-1">Total Ingresos</p>
-          <h3 className="text-2xl font-serif font-bold">${totalRevenue.toLocaleString()}</h3>
-        </div>
-
-        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#f0f0f0]">
-          <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4">
-            <Sparkles size={24} />
-          </div>
-          <p className="text-[#8E9299] text-xs font-bold uppercase tracking-widest mb-1">Ganancia Spa (50%)</p>
-          <h3 className="text-2xl font-serif font-bold">${totalSpaShare.toLocaleString()}</h3>
-        </div>
-
-        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#f0f0f0]">
-          <div className="w-12 h-12 bg-rose-50 text-[#C16991] rounded-2xl flex items-center justify-center mb-4">
-            <Wallet size={24} />
-          </div>
-          <p className="text-[#8E9299] text-xs font-bold uppercase tracking-widest mb-1">Total Préstamos</p>
-          <h3 className="text-2xl font-serif font-bold">${totalLoans.toLocaleString()}</h3>
-        </div>
-
-        <div className="bg-white rounded-[32px] p-6 shadow-sm border border-[#f0f0f0]">
-          <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-4">
-            <Users size={24} />
-          </div>
-          <p className="text-[#8E9299] text-xs font-bold uppercase tracking-widest mb-1">Trabajadoras</p>
-          <h3 className="text-2xl font-serif font-bold">{stats.length}</h3>
-        </div>
-      </div>
 
       {/* Workers Table */}
       <div className="bg-white rounded-[32px] shadow-sm border border-[#f0f0f0] overflow-hidden">
@@ -223,6 +198,63 @@ export default function Admin({ token }: AdminProps) {
             <div className="p-8 border-t border-[#f0f0f0] bg-gray-50 text-center">
               <p className="text-xs text-[#8E9299]">
                 Los datos históricos se basan en el total acumulado de cada mes calendario.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Weekly Summary Modal */}
+      {showWeeklySummary && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-300 overflow-hidden">
+            <div className="p-8 border-b border-[#f0f0f0] flex justify-between items-center bg-[#fdfaf6]">
+              <h3 className="text-2xl font-serif font-bold">Resumen Semanal</h3>
+              <button
+                onClick={() => setShowWeeklySummary(false)}
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 text-[#8E9299]"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-8 grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+                <div className="w-10 h-10 bg-rose-50 text-[#C16991] rounded-xl flex items-center justify-center mb-3">
+                  <TrendingUp size={20} />
+                </div>
+                <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Total Ingresos</p>
+                <h3 className="text-xl font-bold">${totalRevenue.toLocaleString()}</h3>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+                <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3">
+                  <Sparkles size={20} />
+                </div>
+                <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Ganancia Spa (50%)</p>
+                <h3 className="text-xl font-bold">${totalSpaShare.toLocaleString()}</h3>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+                <div className="w-10 h-10 bg-rose-50 text-[#C16991] rounded-xl flex items-center justify-center mb-3">
+                  <Wallet size={20} />
+                </div>
+                <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Total Préstamos</p>
+                <h3 className="text-xl font-bold">${totalLoans.toLocaleString()}</h3>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+                <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3">
+                  <Users size={20} />
+                </div>
+                <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Trabajadoras</p>
+                <h3 className="text-xl font-bold">{stats.length}</h3>
+              </div>
+            </div>
+
+            <div className="p-8 bg-rose-50/30 border-t border-[#f0f0f0] text-center">
+              <p className="text-sm font-medium text-[#C16991]">
+                Cálculos basados en el periodo del {format(parseISO(startDate), 'd')} al {format(parseISO(endDate), 'd')} de {format(parseISO(endDate), 'MMMM', { locale: es })}
               </p>
             </div>
           </div>
