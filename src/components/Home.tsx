@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Appointment, User } from '../types';
+import { Appointment, User, Loan } from '../types';
 import { Clock, User as UserIcon, Calendar, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -7,21 +7,27 @@ import LoadingSpinner from './LoadingSpinner';
 
 interface HomeProps {
   user: User;
+  token: string;
 }
 
-export default function Home({ user }: HomeProps) {
+export default function Home({ user, token }: HomeProps) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   useEffect(() => {
-    fetch('/api/appointments/today')
-      .then(res => res.json())
-      .then(data => {
-        setAppointments(data);
-        setLoading(false);
-      });
-  }, []);
+    Promise.all([
+      fetch('/api/appointments/today').then(res => res.json()),
+      fetch('/api/loans', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(res => res.json())
+    ]).then(([appointmentsData, loansData]) => {
+      setAppointments(appointmentsData);
+      setLoans(loansData);
+      setLoading(false);
+    });
+  }, [token]);
 
   const formatTime12h = (time24: string) => {
     try {
@@ -37,11 +43,27 @@ export default function Home({ user }: HomeProps) {
 
   if (loading) return <LoadingSpinner message="Cargando citas de hoy..." />;
 
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayLoans = loans.filter(l => l.date.startsWith(todayStr));
+
+  // Determine relevant data for financial totals
+  const relevantAppointments = user.role === 'admin' 
+    ? appointments 
+    : appointments.filter(a => {
+        const workerId = typeof a.worker_id === 'object' ? (a.worker_id as any).id || (a.worker_id as any)._id : a.worker_id;
+        return workerId === user.id;
+      });
+
   const pendingAppointments = appointments.filter(a => a.status === 'pending');
-  const completedAppointments = appointments.filter(a => a.status === 'completed');
+  const completedAppointments = relevantAppointments.filter(a => a.status === 'completed');
+  
+  // Total daily appointments for the list below (global view)
+  const allCompletedAppointments = appointments.filter(a => a.status === 'completed');
 
   const cashTotal = completedAppointments.filter(a => a.payment_method === 'cash').reduce((sum, a) => sum + a.price, 0);
   const transferTotal = completedAppointments.filter(a => a.payment_method === 'transfer').reduce((sum, a) => sum + a.price, 0);
+  const loanTotal = todayLoans.reduce((sum, l) => sum + l.amount, 0);
+  const finalCash = cashTotal - loanTotal;
 
   return (
     <div className="space-y-6">
@@ -57,10 +79,12 @@ export default function Home({ user }: HomeProps) {
           className="bg-[#C16991]/10 hover:bg-[#C16991]/20 transition-colors text-[#C16991] px-4 py-2 rounded-2xl text-sm font-bold flex flex-col items-end gap-1 cursor-pointer"
         >
           <div className="flex gap-3">
-            <span>💵 ${cashTotal.toLocaleString()}</span>
+            <span>💵 ${finalCash.toLocaleString()}</span>
             <span>💳 ${transferTotal.toLocaleString()}</span>
           </div>
-          <span className="text-[10px] uppercase tracking-wider opacity-80 mt-1">Ver Resumen</span>
+          <span className="text-[10px] uppercase tracking-wider opacity-80 mt-1">
+            {loanTotal > 0 ? `Ver con ${loanTotal.toLocaleString()} en préstamos` : 'Ver Resumen'}
+          </span>
         </button>
       </div>
 
@@ -136,23 +160,38 @@ export default function Home({ user }: HomeProps) {
               </button>
             </div>
 
-            <div className="flex gap-4 mb-6">
-              <div className="flex-1 bg-green-50 p-3 rounded-2xl border border-green-100">
-                <p className="text-[10px] text-green-600 font-bold uppercase mb-1">Efectivo</p>
-                <p className="font-bold text-green-700">${cashTotal.toLocaleString()}</p>
+            <div className="flex flex-col gap-3 mb-6">
+              <div className="flex gap-3">
+                <div className="flex-1 bg-green-50 p-3 rounded-2xl border border-green-100">
+                  <p className="text-[10px] text-green-600 font-bold uppercase mb-1">Efectivo (Bruto)</p>
+                  <p className="font-bold text-green-700">${cashTotal.toLocaleString()}</p>
+                </div>
+                <div className="flex-1 bg-blue-50 p-3 rounded-2xl border border-blue-100">
+                  <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">Transferencia</p>
+                  <p className="font-bold text-blue-700">${transferTotal.toLocaleString()}</p>
+                </div>
               </div>
-              <div className="flex-1 bg-blue-50 p-3 rounded-2xl border border-blue-100">
-                <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">Transferencia</p>
-                <p className="font-bold text-blue-700">${transferTotal.toLocaleString()}</p>
-              </div>
+
+              {loanTotal > 0 && (
+                <div className="bg-rose-50 p-3 rounded-2xl border border-rose-100 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] text-rose-600 font-bold uppercase">Menos Préstamos</p>
+                    <p className="font-bold text-rose-700">-${loanTotal.toLocaleString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-rose-600 font-bold uppercase">Total a Entregar</p>
+                    <p className="text-lg font-bold text-rose-700">${finalCash.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <h4 className="font-bold text-sm text-[#8E9299] mb-3 uppercase tracking-wider">Servicios Completados</h4>
             
             <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
               {completedAppointments.length === 0 ? (
-                <p className="text-center text-gray-400 text-sm py-8 border border-dashed border-gray-200 rounded-2xl">
-                  No hay servicios terminados hoy
+                <p className="text-center text-gray-400 text-sm py-8 border border-dashed border-gray-200 rounded-2xl mb-4">
+                  No hay servicios terminados
                 </p>
               ) : (
                 completedAppointments.map(apt => (
@@ -171,6 +210,29 @@ export default function Home({ user }: HomeProps) {
                     </div>
                   </div>
                 ))
+              )}
+
+              {todayLoans.length > 0 && (
+                <>
+                  <h4 className="font-bold text-sm text-[#8E9299] mb-3 mt-6 uppercase tracking-wider">Préstamos de Hoy</h4>
+                  <div className="space-y-3">
+                    {todayLoans.map(loan => (
+                      <div key={loan.id} className="bg-rose-50/50 rounded-2xl p-4 flex justify-between items-center border border-rose-100/50">
+                        <div>
+                          <p className="font-bold text-sm text-rose-700">${loan.amount.toLocaleString()}</p>
+                          <p className="text-[10px] text-rose-500 mt-1 italic max-w-[150px] truncate">
+                            {loan.observation || 'Sin observación'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                           <span className="text-[10px] font-bold text-rose-400 uppercase">
+                            {loan.date.split(' ')[1]}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
