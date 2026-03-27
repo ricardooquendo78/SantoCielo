@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { WorkerStats } from '../types';
 import { TrendingUp, Users, Sparkles, PieChart, Wallet, Calendar, X, Filter } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, parseISO, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -16,6 +16,12 @@ export default function Admin({ token }: AdminProps) {
   const [showWeeklySummary, setShowWeeklySummary] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [allAppointments, setAllAppointments] = useState<any[]>([]);
+  const [allLoans, setAllLoans] = useState<any[]>([]);
+  const [selectedWorker, setSelectedWorker] = useState<WorkerStats | null>(null);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [showDaySelector, setShowDaySelector] = useState(false);
+  const [showDayBreakdown, setShowDayBreakdown] = useState(false);
 
   // Default to current week
   const now = new Date();
@@ -47,6 +53,23 @@ export default function Admin({ token }: AdminProps) {
       setLoadingHistory(false);
     }
   };
+
+  const fetchDetailedData = async () => {
+    try {
+      const res = await fetch('/api/admin/financials', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setAllAppointments(data.appointments);
+      setAllLoans(data.loans);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDetailedData();
+  }, [token]);
 
   const totalRevenue = stats.reduce((sum, s) => sum + Number(s.total_revenue || 0), 0);
   const totalSpaShare = totalRevenue * 0.5;
@@ -107,8 +130,12 @@ export default function Admin({ token }: AdminProps) {
             </thead>
             <tbody className="divide-y divide-[#f0f0f0]">
               {stats.map(worker => (
-                <tr key={worker.id} className="hover:bg-[#fdfaf6] transition-colors">
-                  <td className="px-8 py-5 font-bold">{worker.name}</td>
+                <tr 
+                  key={worker.id} 
+                  onClick={() => { setSelectedWorker(worker); setShowDaySelector(true); }}
+                  className="hover:bg-rose-50 transition-colors cursor-pointer group"
+                >
+                  <td className="px-8 py-5 font-bold text-[#4a4a4a] group-hover:text-[#C16991]">{worker.name}</td>
                   <td className="px-8 py-5">{worker.total_services}</td>
                   <td className="px-8 py-5 font-medium">${worker.total_revenue.toLocaleString()}</td>
                   <td className="px-8 py-5 text-purple-600 font-bold text-center">
@@ -130,6 +157,143 @@ export default function Admin({ token }: AdminProps) {
           </div>
         )}
       </div>
+
+      {/* Day Selector Modal */}
+      {showDaySelector && selectedWorker && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="p-8 border-b border-[#f0f0f0] flex justify-between items-center bg-[#fdfaf6]">
+              <div>
+                <h3 className="text-xl font-serif font-bold">Días de la Semana</h3>
+                <p className="text-[#8E9299] text-xs font-bold uppercase tracking-widest mt-1">{selectedWorker.name}</p>
+              </div>
+              <button
+                onClick={() => setShowDaySelector(false)}
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50"
+              >
+                <X size={24} className="text-[#8E9299]" />
+              </button>
+            </div>
+            <div className="p-6 grid gap-2">
+              {eachDayOfInterval({ start: parseISO(startDate), end: parseISO(endDate) }).map(day => (
+                <button
+                  key={day.toISOString()}
+                  onClick={() => { setSelectedDay(day); setShowDaySelector(false); setShowDayBreakdown(true); }}
+                  className="w-full p-4 rounded-2xl border border-[#f0f0f0] flex justify-between items-center hover:bg-rose-50 hover:border-[#C16991] transition-all group"
+                >
+                  <span className="font-bold capitalize text-[#4a4a4a] group-hover:text-[#C16991]">
+                    {format(day, 'EEEE dd', { locale: es })}
+                  </span>
+                  <div className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-lg uppercase group-hover:bg-[#C16991]/10 group-hover:text-[#C16991]">
+                    Ver detalle
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Day Breakdown Modal */}
+      {showDayBreakdown && selectedWorker && selectedDay && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl animate-in fade-in zoom-in duration-300 flex flex-col max-h-[85vh]">
+            <div className="p-8 border-b border-[#f0f0f0] flex justify-between items-center bg-[#fdfaf6]">
+              <div>
+                <h3 className="text-2xl font-serif font-bold">Rendimiento Diario</h3>
+                <p className="text-[#C16991] font-bold capitalize mt-1">
+                  {selectedWorker.name} • {format(selectedDay, "EEEE d 'de' MMMM", { locale: es })}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDayBreakdown(false)}
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50"
+              >
+                <X size={24} className="text-[#8E9299]" />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto flex-1 space-y-6">
+              {(() => {
+                const dayStr = format(selectedDay, 'yyyy-MM-dd');
+                const dayAppointments = allAppointments.filter(a => 
+                  (typeof a.worker_id === 'object' ? (a.worker_id.id || a.worker_id._id) : a.worker_id) === String(selectedWorker.id) && 
+                  a.date === dayStr
+                );
+                const dayLoans = allLoans.filter(l => 
+                  (typeof l.worker_id === 'object' ? (l.worker_id.id || l.worker_id._id) : l.worker_id) === String(selectedWorker.id) && 
+                  l.date.startsWith(dayStr)
+                );
+
+                const totalRevenue = dayAppointments.reduce((sum, a) => sum + a.price, 0);
+                const workerShare = totalRevenue * 0.5;
+                const totalLoans = dayLoans.reduce((sum, l) => sum + l.amount, 0);
+                const netPay = workerShare - totalLoans;
+
+                if (dayAppointments.length === 0 && dayLoans.length === 0) {
+                  return <div className="py-20 text-center text-[#8E9299] font-bold">No hubo actividad este día</div>;
+                }
+
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-[#fdfaf6] p-4 rounded-3xl border border-[#f0f0f0]">
+                        <p className="text-[10px] font-bold text-[#8E9299] uppercase mb-1">Bruto del Día</p>
+                        <p className="text-xl font-bold text-[#4a4a4a]">${totalRevenue.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-[#C16991]/5 p-4 rounded-3xl border border-[#C16991]/10">
+                        <p className="text-[10px] font-bold text-[#C16991] uppercase mb-1">Gana {selectedWorker.name.split(' ')[0]} (50%)</p>
+                        <p className="text-xl font-bold text-[#C16991]">${workerShare.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    {dayAppointments.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-bold text-[#8E9299] uppercase tracking-widest pl-2">Servicios Realizados</h4>
+                        <div className="grid gap-2">
+                          {dayAppointments.map((apt, idx) => (
+                            <div key={idx} className="bg-white border border-[#f0f0f0] p-4 rounded-2xl flex justify-between items-center">
+                              <div>
+                                <p className="font-bold text-[#4a4a4a] text-sm">{apt.service_name}</p>
+                                <p className="text-[10px] text-[#8E9299] mt-0.5">{apt.time}</p>
+                              </div>
+                              <p className="font-bold text-[#C16991]">${apt.price.toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {dayLoans.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-bold text-rose-500 uppercase tracking-widest pl-2">Préstamos / Adelantos</h4>
+                        <div className="grid gap-2">
+                          {dayLoans.map((loan, idx) => (
+                            <div key={idx} className="bg-rose-50/50 border border-rose-100 p-4 rounded-2xl flex justify-between items-center">
+                              <div>
+                                <p className="font-bold text-rose-700 text-sm">{loan.observation || 'Sin observación'}</p>
+                                <p className="text-[10px] text-rose-400 mt-0.5">{loan.date.split(' ')[1]}</p>
+                              </div>
+                              <p className="font-bold text-rose-700">-${loan.amount.toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-8 pt-6 border-t border-dashed border-gray-200">
+                      <div className="bg-[#C16991] rounded-3xl p-6 text-white text-center shadow-lg shadow-[#C16991]/20">
+                        <p className="text-xs font-bold uppercase opacity-80 mb-1">Neto a recibir por {selectedWorker.name.split(' ')[0]}</p>
+                        <p className="text-3xl font-serif font-bold">${netPay.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Monthly History Modal */}
       {showHistory && (
@@ -218,37 +382,37 @@ export default function Admin({ token }: AdminProps) {
               </button>
             </div>
             
-            <div className="p-8 grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+            <div className="p-6 overflow-y-auto max-h-[60vh] grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#f0f0f0]">
                 <div className="w-10 h-10 bg-rose-50 text-[#C16991] rounded-xl flex items-center justify-center mb-3">
                   <TrendingUp size={20} />
                 </div>
                 <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Total Ingresos</p>
-                <h3 className="text-xl font-bold">${totalRevenue.toLocaleString()}</h3>
+                <h3 className="text-lg font-bold truncate" title={totalRevenue.toLocaleString()}>${totalRevenue.toLocaleString()}</h3>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#f0f0f0]">
                 <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3">
                   <Sparkles size={20} />
                 </div>
                 <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Ganancia Spa (50%)</p>
-                <h3 className="text-xl font-bold">${totalSpaShare.toLocaleString()}</h3>
+                <h3 className="text-lg font-bold truncate" title={totalSpaShare.toLocaleString()}>${totalSpaShare.toLocaleString()}</h3>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#f0f0f0]">
                 <div className="w-10 h-10 bg-rose-50 text-[#C16991] rounded-xl flex items-center justify-center mb-3">
                   <Wallet size={20} />
                 </div>
                 <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Total Préstamos</p>
-                <h3 className="text-xl font-bold">${totalLoans.toLocaleString()}</h3>
+                <h3 className="text-lg font-bold truncate" title={totalLoans.toLocaleString()}>${totalLoans.toLocaleString()}</h3>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#f0f0f0]">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#f0f0f0]">
                 <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-3">
                   <Users size={20} />
                 </div>
                 <p className="text-[#8E9299] text-[10px] font-bold uppercase tracking-widest mb-1">Trabajadoras</p>
-                <h3 className="text-xl font-bold">{stats.length}</h3>
+                <h3 className="text-lg font-bold">{stats.length}</h3>
               </div>
             </div>
 
