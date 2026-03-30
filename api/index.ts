@@ -245,7 +245,9 @@ app.get('/api/admin/stats', authenticateToken, async (req: any, res) => {
             let loansMatch: any = { worker_id: worker._id };
             if (startDate && endDate) {
                 appointmentsMatch.date = { $gte: startDate, $lte: endDate };
-                loansMatch.date = { $gte: startDate, $lte: endDate };
+                // Using " 23:59" ensures that loans with time (e.g. "2026-03-30 11:51") 
+                // are included when filtering by endDate (e.g. "2026-03-30").
+                loansMatch.date = { $gte: startDate, $lte: endDate + " 23:59" };
             }
             const appointmentsInfo = await Appointment.aggregate([
                 { $match: appointmentsMatch },
