@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Appointment, Loan } from '../types';
-import { DollarSign, Calendar, User as UserIcon, CreditCard, Wallet, FileText, Download, TrendingDown, X } from 'lucide-react';
+import { DollarSign, Calendar, User as UserIcon, CreditCard, Wallet, FileText, Download, TrendingDown, X, Trash2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from './LoadingSpinner';
@@ -26,6 +26,36 @@ export default function Financials({ token }: FinancialsProps) {
         setLoading(false);
       });
   }, [token]);
+  
+  const fetchFinancials = () => {
+    setLoading(true);
+    fetch('/api/admin/financials', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setAppointments(data.appointments || []);
+        setLoans(data.loans || []);
+        setLoading(false);
+      });
+  };
+
+  const handleDeleteAppointment = async (id: number) => {
+    if (!confirm('¿Estás segura de eliminar permanentemente esta venta? Esta acción no se puede deshacer y restará el monto del balance.')) return;
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchFinancials();
+      } else {
+        alert('Error al eliminar la venta');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
 
 
   const now = new Date();
@@ -215,8 +245,17 @@ export default function Financials({ token }: FinancialsProps) {
                       </span>
                     )}
                   </td>
-                  <td className="px-8 py-5 text-right font-bold">
-                    ${apt.price.toLocaleString()}
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <span className="font-bold">${apt.price.toLocaleString()}</span>
+                      <button
+                        onClick={() => handleDeleteAppointment(apt.id)}
+                        className="w-8 h-8 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full flex items-center justify-center transition-colors"
+                        title="Eliminar permanentemente"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { WorkerStats } from '../types';
-import { TrendingUp, Users, Sparkles, PieChart, Wallet, Calendar, X, Filter } from 'lucide-react';
+import { TrendingUp, Users, Sparkles, PieChart, Wallet, Calendar, X, Filter, Trash2 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, parseISO, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from './LoadingSpinner';
@@ -70,6 +70,36 @@ export default function Admin({ token }: AdminProps) {
   useEffect(() => {
     fetchDetailedData();
   }, [token]);
+
+  const fetchStats = () => {
+    setLoading(true);
+    fetch(`/api/admin/stats?startDate=${startDate}&endDate=${endDate}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setStats(data);
+        setLoading(false);
+      });
+  };
+
+  const handleDeleteAppointment = async (id: string) => {
+    if (!confirm('¿Estás segura de eliminar permanentemente esta venta?')) return;
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchDetailedData();
+        fetchStats();
+      } else {
+        alert('Error al eliminar');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const totalRevenue = stats.reduce((sum, s) => sum + Number(s.total_revenue || 0), 0);
   const totalSpaShare = totalRevenue * 0.5;
@@ -252,12 +282,24 @@ export default function Admin({ token }: AdminProps) {
                         <h4 className="text-sm font-bold text-[#8E9299] uppercase tracking-widest pl-2">Servicios Realizados</h4>
                         <div className="grid gap-2">
                           {dayAppointments.map((apt, idx) => (
-                            <div key={idx} className="bg-white border border-[#f0f0f0] p-4 rounded-2xl flex justify-between items-center">
+                            <div key={idx} className="bg-white border border-[#f0f0f0] p-4 rounded-2xl flex justify-between items-center group/item">
                               <div>
                                 <p className="font-bold text-[#4a4a4a] text-sm">{apt.service_name}</p>
                                 <p className="text-[10px] text-[#8E9299] mt-0.5">{apt.time}</p>
                               </div>
-                              <p className="font-bold text-[#C16991]">${apt.price.toLocaleString()}</p>
+                              <div className="flex items-center gap-3">
+                                <p className="font-bold text-[#C16991]">${apt.price.toLocaleString()}</p>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAppointment(apt.id || apt._id);
+                                  }}
+                                  className="w-8 h-8 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full flex items-center justify-center transition-colors opacity-0 group-hover/item:opacity-100"
+                                  title="Eliminar permanentemente"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>

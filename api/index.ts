@@ -222,6 +222,18 @@ app.put('/api/appointments/:id', authenticateToken, async (req: any, res) => {
     }
 });
 
+app.delete('/api/appointments/:id', authenticateToken, async (req: any, res) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    const { id } = req.params;
+    try {
+        const appointment = await Appointment.findByIdAndDelete(id);
+        if (!appointment) return res.status(404).json({ error: 'Not found' });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Error deleting appointment' });
+    }
+});
+
 // Admin Stats
 app.get('/api/admin/stats', authenticateToken, async (req: any, res) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
