@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { WorkerStats } from '../types';
-import { TrendingUp, Users, Sparkles, PieChart, Wallet, Calendar, X, Filter, Trash2 } from 'lucide-react';
-import { format, startOfWeek, endOfWeek, parseISO, eachDayOfInterval, isSameDay } from 'date-fns';
+import { TrendingUp, Users, Sparkles, PieChart, Wallet, Calendar, X, Filter, Trash2, ChevronRight, ArrowLeft, DollarSign } from 'lucide-react';
+import { format, startOfWeek, endOfWeek, parseISO, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, eachWeekOfInterval, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -22,6 +22,8 @@ export default function Admin({ token }: AdminProps) {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [showDaySelector, setShowDaySelector] = useState(false);
   const [showDayBreakdown, setShowDayBreakdown] = useState(false);
+  const [selectedMonthDetail, setSelectedMonthDetail] = useState<string | null>(null);
+  const [showMonthDetail, setShowMonthDetail] = useState(false);
 
   // Default to current week
   const now = new Date();
@@ -362,11 +364,18 @@ export default function Admin({ token }: AdminProps) {
               ) : (
                 <div className="space-y-4">
                   {history.map(item => (
-                    <div key={item.month} className="bg-[#fdfaf6] rounded-2xl p-6 border border-[#f0f0f0]">
+                    <div 
+                      key={item.month} 
+                      onClick={() => { setSelectedMonthDetail(item.month); setShowMonthDetail(true); }}
+                      className="bg-[#fdfaf6] rounded-2xl p-6 border border-[#f0f0f0] cursor-pointer hover:border-[#C16991] hover:bg-rose-50/30 transition-all group"
+                    >
                       <div className="flex justify-between items-center mb-4">
-                        <h4 className="text-lg font-bold capitalize">
-                          {format(parseISO(item.month + '-01'), 'MMMM yyyy', { locale: es })}
-                        </h4>
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-lg font-bold capitalize group-hover:text-[#C16991]">
+                            {format(parseISO(item.month + '-01'), 'MMMM yyyy', { locale: es })}
+                          </h4>
+                          <ChevronRight size={18} className="text-[#8E9299] group-hover:text-[#C16991] group-hover:translate-x-1 transition-all" />
+                        </div>
                         {item.month === format(now, 'yyyy-MM') ? (
                           <div className="text-xs font-bold bg-purple-100 text-purple-600 px-3 py-1 rounded-full border border-purple-200">
                             EN CURSO
@@ -461,6 +470,145 @@ export default function Admin({ token }: AdminProps) {
             <div className="p-8 bg-rose-50/30 border-t border-[#f0f0f0] text-center">
               <p className="text-sm font-medium text-[#C16991]">
                 Cálculos basados en el periodo del {format(parseISO(startDate), 'd')} al {format(parseISO(endDate), 'd')} de {format(parseISO(endDate), 'MMMM', { locale: es })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Month detail (Weekly breakdown) Modal */}
+      {showMonthDetail && selectedMonthDetail && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[32px] w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className="p-8 border-b border-[#f0f0f0] flex justify-between items-center bg-[#fdfaf6]">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setShowMonthDetail(false)}
+                  className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-100 text-[#C16991] transition-colors"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div>
+                  <h3 className="text-2xl font-serif font-bold capitalize">
+                    {format(parseISO(selectedMonthDetail + '-01'), 'MMMM yyyy', { locale: es })}
+                  </h3>
+                  <p className="text-[#8E9299] text-sm">Resumen Detallado por Semanas</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowMonthDetail(false); setShowHistory(false); }}
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50 text-[#8E9299]"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-8 overflow-y-auto flex-1 space-y-6">
+              {(() => {
+                const monthDate = parseISO(selectedMonthDetail + '-01');
+                const monthStart = startOfMonth(monthDate);
+                const monthEnd = endOfMonth(monthDate);
+
+                // Find all weeks that belong to this month
+                const weeksStarts = eachWeekOfInterval({
+                  start: monthStart,
+                  end: monthEnd
+                }, { weekStartsOn: 0 });
+
+                const weeklyData = weeksStarts.map(weekStartVal => {
+                  const weekEndVal = endOfWeek(weekStartVal, { weekStartsOn: 0 });
+                  
+                  const weekApts = allAppointments.filter(apt => {
+                    const aptDate = parseISO(apt.date);
+                    return isWithinInterval(aptDate, { start: weekStartVal, end: weekEndVal });
+                  });
+
+                  const weekLoans = allLoans.filter(l => {
+                    const lDate = parseISO(l.date.split(' ')[0]);
+                    return isWithinInterval(lDate, { start: weekStartVal, end: weekEndVal });
+                  });
+
+                  const gross = weekApts.reduce((sum, a) => sum + a.price, 0);
+                  const loans = weekLoans.reduce((sum, l) => sum + l.amount, 0);
+                  const workersShare = gross * 0.5;
+                  
+                  return {
+                    start: weekStartVal,
+                    end: weekEndVal,
+                    count: weekApts.length,
+                    gross,
+                    loans,
+                    spaProfit: gross * 0.5,
+                    netPay: workersShare - loans
+                  };
+                });
+
+                return (
+                  <div className="grid gap-4">
+                    {weeklyData.map((week, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => {
+                          setStartDate(format(week.start, 'yyyy-MM-dd'));
+                          setEndDate(format(week.end, 'yyyy-MM-dd'));
+                          setShowMonthDetail(false);
+                          setShowHistory(false);
+                          fetchStats();
+                        }}
+                        className="bg-white border border-[#f0f0f0] rounded-2xl p-6 hover:border-[#C16991] hover:bg-rose-50/20 transition-all cursor-pointer group"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <p className="text-[#C16991] font-bold text-sm">Semana {idx + 1}</p>
+                            <p className="text-[#8E9299] text-xs">
+                              {format(week.start, 'd MMM')} al {format(week.end, 'd MMM, yyyy', { locale: es })}
+                            </p>
+                          </div>
+                          <div className="bg-[#fdfaf6] px-3 py-1 rounded-full text-[10px] font-bold text-[#8E9299] border border-[#f0f0f0] group-hover:bg-[#C16991]/10 group-hover:text-[#C16991] group-hover:border-[#C16991]/20 transition-colors">
+                            VER DETALLE
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-[#8E9299] uppercase flex items-center gap-1">
+                              <DollarSign size={10} /> Ingresos
+                            </p>
+                            <p className="font-bold text-[#4a4a4a] text-sm">${week.gross.toLocaleString()}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-green-600 uppercase flex items-center gap-1">
+                              <Sparkles size={10} /> Ganancia (50%)
+                            </p>
+                            <p className="font-bold text-green-600 text-sm">${week.spaProfit.toLocaleString()}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-purple-600 uppercase flex items-center gap-1">
+                              <Users size={10} /> Servicios
+                            </p>
+                            <p className="font-bold text-purple-600 text-sm">{week.count}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-red-500 uppercase flex items-center gap-1">
+                              <Wallet size={10} /> Préstamos
+                            </p>
+                            <p className="font-bold text-red-500 text-sm">-${week.loans.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 pt-4 border-t border-dashed border-gray-100 flex justify-between items-center">
+                          <span className="text-[10px] font-bold text-[#8E9299] uppercase">Pago Neto Trabajadoras:</span>
+                          <span className="text-[#C16991] font-bold">${week.netPay.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div className="p-6 bg-gray-50 border-t border-[#f0f0f0] text-center">
+              <p className="text-xs text-[#8E9299]">
+                Haz clic en una semana para cargar el resumen detallado en el panel principal.
               </p>
             </div>
           </div>
