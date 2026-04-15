@@ -256,14 +256,22 @@ export default function Admin({ token }: AdminProps) {
 
             <div className="p-8 overflow-y-auto flex-1 space-y-6">
               {(() => {
+                const getWorkerId = (item: any) => {
+                  if (!item.worker_id) return null;
+                  if (typeof item.worker_id === 'object') {
+                    return String(item.worker_id.id || item.worker_id._id || '');
+                  }
+                  return String(item.worker_id);
+                };
+
+                const workerIdStr = String(selectedWorker.id);
                 const dayStr = format(selectedDay, 'yyyy-MM-dd');
+                
                 const dayAppointments = allAppointments.filter(a => 
-                  (typeof a.worker_id === 'object' ? (a.worker_id.id || a.worker_id._id) : a.worker_id) === String(selectedWorker.id) && 
-                  a.date === dayStr
+                  getWorkerId(a) === workerIdStr && a.date === dayStr
                 );
                 const dayLoans = allLoans.filter(l => 
-                  (typeof l.worker_id === 'object' ? (l.worker_id.id || l.worker_id._id) : l.worker_id) === String(selectedWorker.id) && 
-                  l.date.startsWith(dayStr)
+                  getWorkerId(l) === workerIdStr && l.date.startsWith(dayStr)
                 );
 
                 const totalRevenue = dayAppointments.reduce((sum, a) => sum + a.price, 0);
