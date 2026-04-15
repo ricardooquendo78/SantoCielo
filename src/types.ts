@@ -6,6 +6,7 @@ export interface User {
     name: string;
     role: Role;
     profile_picture?: string;
+    active?: boolean;
 }
 
 export interface Appointment {
@@ -47,4 +48,5 @@ export interface WorkerStats {
     spa_share: number;
     total_loans: number;
     net_worker_share: number;
+    active?: boolean;
 }

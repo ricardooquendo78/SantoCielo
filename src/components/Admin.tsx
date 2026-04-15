@@ -167,7 +167,16 @@ export default function Admin({ token }: AdminProps) {
                   onClick={() => { setSelectedWorker(worker); setShowDaySelector(true); }}
                   className="hover:bg-rose-50 transition-colors cursor-pointer group"
                 >
-                  <td className="px-8 py-5 font-bold text-[#4a4a4a] group-hover:text-[#C16991]">{worker.name}</td>
+                  <td className="px-8 py-5 font-bold text-[#4a4a4a] group-hover:text-[#C16991]">
+                    <div className="flex items-center gap-2">
+                      {worker.name}
+                      {worker.active === false && (
+                        <span className="text-[10px] bg-rose-50 text-[#C16991] px-2 py-0.5 rounded-lg border border-[#C16991]/10 uppercase font-bold tracking-wider">
+                          Inactiva
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-8 py-5">{worker.total_services}</td>
                   <td className="px-8 py-5 font-medium">${worker.total_revenue.toLocaleString()}</td>
                   <td className="px-8 py-5 text-purple-600 font-bold text-center">

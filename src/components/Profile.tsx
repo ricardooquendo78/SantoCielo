@@ -164,7 +164,7 @@ export default function Profile({ user, token }: ProfileProps) {
   };
 
   const handleDeleteWorker = async (id: number) => {
-    if (!confirm('¿Estás segura de eliminar a esta trabajadora?')) return;
+    if (!confirm('¿Estás segura de desactivar y bloquear la cuenta de esta trabajadora? Podrás ver su historial, pero ella ya no podrá entrar a la app.')) return;
 
     const res = await fetch(`/api/admin/workers/${id}`, {
       method: 'DELETE',
@@ -280,7 +280,7 @@ export default function Profile({ user, token }: ProfileProps) {
         </div>
 
         <div className="grid gap-4">
-          {workers.map(worker => (
+          {workers.filter(w => w.active !== false).map(worker => (
             <div key={worker.id} className="bg-white rounded-3xl p-6 shadow-sm border border-[#f0f0f0] flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#f5f5f0] rounded-full flex items-center justify-center overflow-hidden">
@@ -293,8 +293,8 @@ export default function Profile({ user, token }: ProfileProps) {
               </div>
               <button
                 onClick={() => handleDeleteWorker(worker.id)}
-                className="w-10 h-10 text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center transition-colors"
-                title="Eliminar Trabajadora"
+                className="w-10 h-10 text-rose-400 hover:text-red-500 hover:bg-red-50 rounded-full flex items-center justify-center transition-colors"
+                title="Desactivar Trabajadora"
               >
                 <Trash2 size={20} />
               </button>

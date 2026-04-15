@@ -17,7 +17,8 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     name: { type: String, required: true },
     role: { type: String, enum: ['admin', 'worker'], required: true },
-    profile_picture: { type: String }
+    profile_picture: { type: String },
+    active: { type: Boolean, default: true }
 });
 UserSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
 const User = mongoose.models.User || mongoose.model('User', UserSchema);
@@ -122,12 +123,15 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+        if (user.active === false) {
+            return res.status(403).json({ error: 'Tu cuenta ha sido desactivada. Contacta al administrador.' });
         }
         const token = jwt.sign({ id: user._id, email: user.email, role: user.role, name: user.name }, JWT_SECRET);
         res.json({ token, user: { id: user._id, email: user.email, role: user.role, name: user.name, profile_picture: user.profile_picture } });
     } catch (err) {
-        res.status(500).json({ error: 'Login error' });
+        res.status(500).json({ error: 'Error en el login' });
     }
 });
 
@@ -144,7 +148,7 @@ app.put('/api/users/profile-picture', authenticateToken, async (req: any, res) =
     try {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: 'Not found' });
-        
+
         user.profile_picture = req.body.profile_picture;
         await user.save();
         res.json({ success: true, profile_picture: user.profile_picture });
@@ -239,6 +243,7 @@ app.get('/api/admin/stats', authenticateToken, async (req: any, res) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
     const { startDate, endDate } = req.query;
     try {
+        // Get all workers that are either active OR have appointments in the timeframe
         const workers = await User.find({ role: 'worker' });
         const stats = await Promise.all(workers.map(async (worker) => {
             let appointmentsMatch: any = { worker_id: worker._id, status: 'completed' };
@@ -268,10 +273,14 @@ app.get('/api/admin/stats', authenticateToken, async (req: any, res) => {
                 worker_share: worker_share,
                 spa_share: total_revenue * 0.5,
                 total_loans: total_loans,
-                net_worker_share: worker_share - total_loans
+                net_worker_share: worker_share - total_loans,
+                active: worker.active !== false
             };
         }));
-        res.json(stats);
+
+        // Filter out inactive workers who had NO activity in this period
+        const activeStats = stats.filter(s => s.active || s.total_services > 0 || s.total_loans > 0);
+        res.json(activeStats);
     } catch (err) {
         res.status(500).json({ error: 'Error calculating stats' });
     }
@@ -292,12 +301,14 @@ app.delete('/api/admin/workers/:id', authenticateToken, async (req: any, res) =>
     if (req.user.role !== 'admin') return res.sendStatus(403);
     const { id } = req.params;
     try {
-        const aptCount = await Appointment.countDocuments({ worker_id: id });
-        if (aptCount > 0) return res.status(400).json({ error: 'No se puede eliminar una trabajadora con citas registradas' });
-        await User.findByIdAndDelete(id);
-        res.json({ success: true });
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ error: 'No se encontró la trabajadora' });
+
+        user.active = false;
+        await user.save();
+        res.json({ success: true, message: 'Trabajadora desactivada correctamente' });
     } catch (err) {
-        res.status(500).json({ error: 'Error deleting worker' });
+        res.status(500).json({ error: 'Error al desactivar la trabajadora' });
     }
 });
 
