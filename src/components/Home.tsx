@@ -107,7 +107,7 @@ export default function Home({ user, token }: HomeProps) {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">{apt.service_name}</h3>
-                  <div className="flex items-center gap-2 text-[#8E9299] text-sm">
+                  <div className="flex flex-wrap items-center gap-2 text-[#8E9299] text-sm">
                     <UserIcon size={14} />
                     <span>Cliente: {apt.client_name}</span>
                     {apt.client_phone && (
@@ -128,6 +128,11 @@ export default function Home({ user, token }: HomeProps) {
                       )
                     )}
                   </div>
+                  {apt.observation && (
+                    <p className="text-xs text-[#8E9299] italic mt-1 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 inline-block">
+                      Obs: {apt.observation}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -201,6 +206,11 @@ export default function Home({ user, token }: HomeProps) {
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                          <UserIcon size={10} /> {apt.worker_name}
                       </p>
+                      {apt.observation && (
+                        <p className="text-[10px] text-gray-400 italic mt-0.5">
+                          Obs: {apt.observation}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right flex flex-col items-end">
                       <p className="font-bold text-[#C16991]">${apt.price.toLocaleString()}</p>
