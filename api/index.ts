@@ -21,7 +21,7 @@ const UserSchema = new mongoose.Schema({
     active: { type: Boolean, default: true }
 });
 UserSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
-const User = mongoose.models.User || mongoose.model('User', UserSchema);
+const User = (mongoose.models.User || mongoose.model('User', UserSchema)) as any;
 
 const AppointmentSchema = new mongoose.Schema({
     worker_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -33,17 +33,19 @@ const AppointmentSchema = new mongoose.Schema({
     time: { type: String },
     status: { type: String, default: 'pending' },
     payment_method: { type: String },
-    payment_proof: { type: String }
+    payment_proof: { type: String },
+    completed_at: { type: Date },
+    observation: { type: String }
 });
 AppointmentSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
-const Appointment = mongoose.models.Appointment || mongoose.model('Appointment', AppointmentSchema);
+const Appointment = (mongoose.models.Appointment || mongoose.model('Appointment', AppointmentSchema)) as any;
 
 const ServiceSchema = new mongoose.Schema({
     name: { type: String, unique: true, required: true },
     price: { type: Number, required: true }
 });
 ServiceSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
-const Service = mongoose.models.Service || mongoose.model('Service', ServiceSchema);
+const Service = (mongoose.models.Service || mongoose.model('Service', ServiceSchema)) as any;
 
 const LoanSchema = new mongoose.Schema({
     worker_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -52,7 +54,7 @@ const LoanSchema = new mongoose.Schema({
     date: { type: String }
 });
 LoanSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
-const Loan = mongoose.models.Loan || mongoose.model('Loan', LoanSchema);
+const Loan = (mongoose.models.Loan || mongoose.model('Loan', LoanSchema)) as any;
 
 const app = express();
 
@@ -188,10 +190,24 @@ app.get('/api/appointments/worker/:id', authenticateToken, async (req: any, res)
 });
 
 app.post('/api/appointments', authenticateToken, async (req: any, res) => {
-    const { client_name, client_phone, service_name, price, date, time } = req.body;
+    const { client_name, client_phone, service_name, price, date, time, observation } = req.body;
     const worker_id = req.user.id;
+    
+    // Default time and date to Bogota timezone if not sent
+    const finalTime = time || new Date().toLocaleTimeString('en-US', { timeZone: 'America/Bogota', hour12: false, hour: '2-digit', minute: '2-digit' });
+    const finalDate = date || new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Bogota' });
+
     try {
-        const newAppointment = await Appointment.create({ worker_id, client_name, client_phone, service_name, price, date, time });
+        const newAppointment = await Appointment.create({ 
+            worker_id, 
+            client_name, 
+            client_phone, 
+            service_name, 
+            price, 
+            date: finalDate, 
+            time: finalTime,
+            observation 
+        });
         res.status(201).json({ id: newAppointment._id });
     } catch (err) {
         res.status(500).json({ error: 'Error creating appointment' });
@@ -200,7 +216,7 @@ app.post('/api/appointments', authenticateToken, async (req: any, res) => {
 
 app.put('/api/appointments/:id', authenticateToken, async (req: any, res) => {
     const { id } = req.params;
-    const { status, payment_method, payment_proof, client_name, client_phone, service_name, price, date, time } = req.body;
+    const { status, payment_method, payment_proof, client_name, client_phone, service_name, price, date, time, observation } = req.body;
     try {
         const appointment = await Appointment.findById(id);
         if (!appointment) return res.status(404).json({ error: 'Not found' });
@@ -208,9 +224,26 @@ app.put('/api/appointments/:id', authenticateToken, async (req: any, res) => {
             return res.sendStatus(403);
         }
         if (status) {
+            // Validation: Only let worker complete one appointment every 20 minutes
+            if (status === 'completed' && req.user.role === 'worker') {
+                const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
+                const recentAppointment = await Appointment.findOne({
+                    worker_id: req.user.id,
+                    status: 'completed',
+                    completed_at: { $gte: twentyMinutesAgo },
+                    _id: { $ne: id }
+                });
+                if (recentAppointment) {
+                    return res.status(400).json({ error: 'No puedes completar otra cita hasta que pasen 20 minutos de tu último servicio completado.' });
+                }
+            }
+
             appointment.status = status;
             appointment.payment_method = payment_method || appointment.payment_method;
             appointment.payment_proof = payment_proof || appointment.payment_proof;
+            if (status === 'completed') {
+                appointment.completed_at = new Date();
+            }
         } else {
             appointment.client_name = client_name;
             appointment.client_phone = client_phone;
@@ -218,6 +251,9 @@ app.put('/api/appointments/:id', authenticateToken, async (req: any, res) => {
             appointment.price = price;
             appointment.date = date;
             appointment.time = time;
+            if (observation !== undefined) {
+                appointment.observation = observation;
+            }
         }
         await appointment.save();
         res.json({ success: true });

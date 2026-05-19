@@ -31,6 +31,8 @@ export default function Profile({ user, token }: ProfileProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [appointmentError, setAppointmentError] = useState('');
+  const [observation, setObservation] = useState('');
+  const [completeError, setCompleteError] = useState('');
 
   // Form states (Worker)
   const [workerName, setWorkerName] = useState('');
@@ -53,6 +55,7 @@ export default function Profile({ user, token }: ProfileProps) {
     setTime('10:00');
     setEditingAppointment(null);
     setAppointmentError('');
+    setObservation('');
   };
 
   const fetchData = async () => {
@@ -107,6 +110,9 @@ export default function Profile({ user, token }: ProfileProps) {
     const url = editingAppointment ? `/api/appointments/${editingAppointment.id}` : '/api/appointments';
     const method = editingAppointment ? 'PUT' : 'POST';
 
+    // Automatically capture current time for new appointments (HH:mm)
+    const finalTime = editingAppointment ? editingAppointment.time : format(new Date(), 'HH:mm');
+
     const res = await fetch(url, {
       method,
       headers: {
@@ -119,7 +125,8 @@ export default function Profile({ user, token }: ProfileProps) {
         service_name: serviceName,
         price: parseFloat(price),
         date,
-        time
+        time: finalTime,
+        observation
       })
     });
 
@@ -182,22 +189,31 @@ export default function Profile({ user, token }: ProfileProps) {
   const handleUpdateStatus = async (id: number, status: string, extra = {}) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setCompleteError('');
 
-    const res = await fetch(`/api/appointments/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ status, ...extra })
-    });
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status, ...extra })
+      });
 
-    if (res.ok) {
-      setShowCompleteModal(null);
-      setPaymentProof(null);
-      fetchData();
+      if (res.ok) {
+        setShowCompleteModal(null);
+        setPaymentProof(null);
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        setCompleteError(errorData.error || 'Error al completar la cita');
+      }
+    } catch (error) {
+      setCompleteError('Error de conexión con el servidor.');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -454,7 +470,7 @@ export default function Profile({ user, token }: ProfileProps) {
                               </div>
                               <div>
                                 <h4 className="font-bold text-lg">{apt.service_name}</h4>
-                                <p className="text-[#8E9299] text-sm flex items-center gap-1">
+                                <p className="text-[#8E9299] text-sm flex flex-wrap items-center gap-1">
                                   <span>{formatTime12h(apt.time)}</span> • <span>{apt.client_name}</span>
                                   {apt.client_phone && (
                                     <span className="bg-[#C16991]/10 text-[#C16991] px-2 py-0.5 rounded-lg text-[10px] font-bold ml-1">
@@ -462,6 +478,11 @@ export default function Profile({ user, token }: ProfileProps) {
                                     </span>
                                   )}
                                 </p>
+                                {apt.observation && (
+                                  <p className="text-xs text-[#8E9299] italic mt-1 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 inline-block">
+                                    Obs: {apt.observation}
+                                  </p>
+                                )}
                               </div>
                             </div>
 
@@ -480,6 +501,7 @@ export default function Profile({ user, token }: ProfileProps) {
                                       setServiceRows([{ id: '1', name: apt.service_name, price: apt.price }]);
                                       setDate(apt.date);
                                       setTime(apt.time);
+                                      setObservation(apt.observation || '');
                                       setShowAddModal(true);
                                     }}
                                     className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors"
@@ -488,7 +510,7 @@ export default function Profile({ user, token }: ProfileProps) {
                                     <Edit2 size={18} />
                                   </button>
                                   <button
-                                    onClick={() => setShowCompleteModal(apt)}
+                                    onClick={() => { setShowCompleteModal(apt); setCompleteError(''); }}
                                     className="w-10 h-10 bg-purple-500 text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors shadow-lg shadow-green-500/20"
                                     title="Completar"
                                   >
@@ -625,19 +647,20 @@ export default function Profile({ user, token }: ProfileProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Hora</label>
+                    <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Fecha</label>
                     <input
-                      type="time" required value={time} onChange={e => setTime(e.target.value)}
+                      type="date" required value={date} onChange={e => setDate(e.target.value)}
+                      min={!editingAppointment ? format(new Date(), 'yyyy-MM-dd') : undefined}
                       className="w-[95%] sm:w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-3 focus:ring-2 focus:ring-[#C16991]"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Fecha</label>
-                  <input
-                    type="date" required value={date} onChange={e => setDate(e.target.value)}
-                    min={!editingAppointment ? format(new Date(), 'yyyy-MM-dd') : undefined}
-                    className="w-[95%] sm:w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-3 focus:ring-2 focus:ring-[#C16991]"
+                  <label className="block text-xs font-bold text-[#8E9299] uppercase mb-1">Observación</label>
+                  <textarea
+                    value={observation} onChange={e => setObservation(e.target.value)}
+                    className="w-full bg-[#f5f5f0] border-none rounded-2xl py-3 px-4 focus:ring-2 focus:ring-[#C16991] resize-none"
+                    placeholder="Observación (opcional)" rows={2}
                   />
                 </div>
 
@@ -669,6 +692,12 @@ export default function Profile({ user, token }: ProfileProps) {
             <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl">
               <h3 className="text-2xl font-serif font-bold mb-2">Finalizar Servicio</h3>
               <p className="text-[#8E9299] mb-6">Confirma el método de pago para {showCompleteModal.client_name}</p>
+
+              {completeError && (
+                <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm mb-4 border border-red-100 flex items-center gap-2">
+                  <X size={16} /> {completeError}
+                </div>
+              )}
 
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
@@ -736,7 +765,7 @@ export default function Profile({ user, token }: ProfileProps) {
 
                 <div className="flex gap-3 pt-4">
                   <button
-                    onClick={() => { setShowCompleteModal(null); setPaymentProof(null); }}
+                    onClick={() => { setShowCompleteModal(null); setPaymentProof(null); setCompleteError(''); }}
                     className="flex-1 py-3 font-bold text-[#8E9299] hover:bg-gray-50 rounded-2xl transition-colors"
                   >
                     Cancelar

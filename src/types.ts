@@ -22,6 +22,8 @@ export interface Appointment {
     payment_method?: string;
     payment_proof?: string;
     worker_name?: string;
+    completed_at?: string;
+    observation?: string;
 }
 
 export interface Service {
