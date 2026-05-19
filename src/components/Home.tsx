@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Appointment, User, Loan } from '../types';
-import { Clock, User as UserIcon, Calendar, X } from 'lucide-react';
+import { Clock, User as UserIcon, Calendar, X, Check, Wallet, CreditCard, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import LoadingSpinner from './LoadingSpinner';
@@ -15,6 +15,55 @@ export default function Home({ user, token }: HomeProps) {
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState<Appointment | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash');
+  const [paymentProof, setPaymentProof] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [completeError, setCompleteError] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPaymentProof(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUpdateStatus = async (id: number, status: string, extra = {}) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setCompleteError('');
+
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status, ...extra })
+      });
+
+      if (res.ok) {
+        setShowCompleteModal(null);
+        setPaymentProof(null);
+        // Refresh data
+        const appointmentsRes = await fetch('/api/appointments/today');
+        const appointmentsData = await appointmentsRes.json();
+        setAppointments(appointmentsData);
+      } else {
+        const errorData = await res.json();
+        setCompleteError(errorData.error || 'Error al completar la cita');
+      }
+    } catch (error) {
+      setCompleteError('Error de conexión con el servidor.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -149,6 +198,18 @@ export default function Home({ user, token }: HomeProps) {
                 <div className="bg-[#f5f5f0] px-4 py-2 rounded-xl text-sm font-bold text-[#C16991]">
                   ${apt.price.toLocaleString()}
                 </div>
+                {user.role === 'admin' && (
+                  <button
+                    onClick={() => {
+                      setShowCompleteModal(apt);
+                      setCompleteError('');
+                    }}
+                    className="w-10 h-10 bg-[#C16991] text-white rounded-full flex items-center justify-center hover:bg-green-600 transition-colors shadow-lg shadow-green-500/20 cursor-pointer"
+                    title="Confirmar Cita (Completar)"
+                  >
+                    <Check size={18} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -244,6 +305,103 @@ export default function Home({ user, token }: HomeProps) {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Modal for Admin */}
+      {showCompleteModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl">
+            <h3 className="text-2xl font-serif font-bold mb-2">Finalizar Servicio</h3>
+            <p className="text-[#8E9299] mb-6">Confirma el método de pago para {showCompleteModal.client_name} (Administradora)</p>
+
+            {completeError && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm mb-4 border border-red-100 flex items-center gap-2">
+                <X size={16} /> {completeError}
+              </div>
+            )}
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setPaymentMethod('cash')}
+                  className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'cash' ? 'border-[#C16991] bg-[#C16991]/5' : 'border-[#f0f0f0]'
+                    }`}
+                >
+                  <Wallet size={24} className={paymentMethod === 'cash' ? 'text-[#C16991]' : 'text-[#8E9299]'} />
+                  <span className={`font-bold text-sm ${paymentMethod === 'cash' ? 'text-[#C16991]' : 'text-[#8E9299]'}`}>Efectivo</span>
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('transfer')}
+                  className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'transfer' ? 'border-[#C16991] bg-[#C16991]/5' : 'border-[#f0f0f0]'
+                    }`}
+                >
+                  <CreditCard size={24} className={paymentMethod === 'transfer' ? 'text-[#C16991]' : 'text-[#8E9299]'} />
+                  <span className={`font-bold text-sm ${paymentMethod === 'transfer' ? 'text-[#C16991]' : 'text-[#8E9299]'}`}>Transferencia</span>
+                </button>
+              </div>
+
+              {paymentMethod === 'transfer' && (
+                <div className="space-y-3">
+                  <label className="block text-xs font-bold text-[#8E9299] uppercase">Comprobante de Pago</label>
+                  <div className="relative border-2 border-dashed border-[#e5e5e5] rounded-2xl p-4 flex flex-col items-center justify-center min-h-[120px]">
+                    {paymentProof ? (
+                      <div className="relative w-full h-32">
+                        <img src={paymentProof} className="w-full h-full object-cover rounded-xl" />
+                        <button
+                          onClick={() => setPaymentProof(null)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <ImageIcon className="text-[#e5e5e5] mb-2" size={32} />
+                        <p className="text-xs text-[#8E9299] text-center mb-4">Selecciona una opción para subir el comprobante</p>
+
+                        <div className="flex gap-4 w-full px-4 relative z-10">
+                          <label className="flex-1 bg-white border border-[#f0f0f0] rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer hover:border-[#C16991] transition-colors shadow-sm">
+                            <ImageIcon size={20} className="text-[#C16991]" />
+                            <span className="text-[10px] font-bold text-gray-600">Galería</span>
+                            <input
+                              type="file" accept="image/*" onChange={handleFileChange}
+                              className="hidden"
+                            />
+                          </label>
+
+                          <label className="flex-1 bg-white border border-[#f0f0f0] rounded-xl p-3 flex flex-col items-center gap-2 cursor-pointer hover:border-[#C16991] transition-colors shadow-sm">
+                            <span className="text-xl">📸</span>
+                            <span className="text-[10px] font-bold text-gray-600">Tomar Foto</span>
+                            <input
+                              type="file" accept="image/*" capture="environment" onChange={handleFileChange}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => { setShowCompleteModal(null); setPaymentProof(null); setCompleteError(''); }}
+                  className="flex-1 py-3 font-bold text-[#8E9299] hover:bg-gray-50 rounded-2xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleUpdateStatus(showCompleteModal.id, 'completed', { payment_method: paymentMethod, payment_proof: paymentProof })}
+                  disabled={isSubmitting || (paymentMethod === 'transfer' && !paymentProof)}
+                  className="flex-1 bg-[#C16991] text-white py-3 font-bold rounded-2xl shadow-lg shadow-[#C16991]/20 disabled:opacity-50 animate-pulse-subtle"
+                >
+                  {isSubmitting ? 'Finalizando...' : 'Confirmar'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
