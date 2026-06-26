@@ -423,7 +423,7 @@ app.delete('/api/services/:id', authenticateToken, async (req: any, res) => {
 });
 
 // Financials
-app.get('/api/admin/financials', authenticateToken, async (req: any, res) => {
+app.get('/api/admin/financials', authenticateToken, async (req: any, res: any) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
     try {
         const appointments = await Appointment.find({ status: 'completed' }).populate('worker_id', 'name').sort({ date: -1, time: -1 });
@@ -432,12 +432,13 @@ app.get('/api/admin/financials', authenticateToken, async (req: any, res) => {
             appointments: appointments.map((a: any) => ({ ...a.toJSON(), worker_name: a.worker_id?.name })),
             loans: loans.map((l: any) => ({ ...l.toJSON(), worker_name: l.worker_id?.name }))
         });
-    } catch (err) {
-        res.status(500).json({ error: 'Error fetching financials' });
+    } catch (err: any) {
+        console.error('Error fetching financials:', err);
+        res.status(500).json({ error: 'Error fetching financials', message: err.message, stack: err.stack });
     }
 });
 
-app.get('/api/admin/monthly-history', authenticateToken, async (req: any, res) => {
+app.get('/api/admin/monthly-history', authenticateToken, async (req: any, res: any) => {
     if (req.user.role !== 'admin') return res.sendStatus(403);
     try {
         const history = await Appointment.aggregate([
@@ -456,7 +457,177 @@ app.get('/api/admin/monthly-history', authenticateToken, async (req: any, res) =
             return { month: h._id, gross_revenue: gross, worker_share: worker_share, spa_profit: gross * 0.5, total_loans: total_loans, net_worker_pay: worker_share - total_loans };
         });
         res.json(combined);
-    } catch (err) { res.status(500).json({ error: 'Error calculating monthly history' }); }
+    } catch (err: any) {
+        console.error('Error calculating monthly history:', err);
+        res.status(500).json({ error: 'Error calculating monthly history', message: err.message, stack: err.stack });
+    }
+});
+
+// Database Diagnostics & Repair Tool
+app.get('/api/admin/db-diagnostic', authenticateToken, async (req: any, res: any) => {
+    if (req.user.role !== 'admin') return res.sendStatus(403);
+    const repair = req.query.repair === 'true';
+    
+    try {
+        const db = mongoose.connection.db;
+        if (!db) {
+            return res.status(500).json({ error: 'Database connection not ready' });
+        }
+        
+        const appointmentsCollection = db.collection('appointments');
+        const loansCollection = db.collection('loans');
+        const usersCollection = db.collection('users');
+        
+        const rawAppointments = await appointmentsCollection.find({}).toArray();
+        const rawLoans = await loansCollection.find({}).toArray();
+        const rawUsers = await usersCollection.find({}).toArray();
+        
+        const isNativeObjectId = (val: any) => {
+            return val && (val instanceof mongoose.Types.ObjectId || (typeof val === 'object' && val.constructor && val.constructor.name === 'ObjectId'));
+        };
+        
+        const findUserRef = (workerIdStr: string) => {
+            if (!workerIdStr) return null;
+            
+            // Try by string representation of ObjectId
+            let user = rawUsers.find(u => u._id.toString() === workerIdStr);
+            if (user) return user;
+            
+            // Try by name matching
+            user = rawUsers.find(u => u.name && (
+                u.name.toLowerCase().trim() === workerIdStr.toLowerCase().trim() ||
+                u.name.toLowerCase().trim().startsWith(workerIdStr.toLowerCase().trim()) ||
+                workerIdStr.toLowerCase().trim().startsWith(u.name.toLowerCase().trim())
+            ));
+            return user || null;
+        };
+        
+        const report = {
+            totalAppointments: rawAppointments.length,
+            totalLoans: rawLoans.length,
+            totalUsers: rawUsers.length,
+            appointmentsIssues: [] as any[],
+            loansIssues: [] as any[],
+            repairedAppointmentsCount: 0,
+            repairedLoansCount: 0,
+            unresolvedAppointments: [] as any[],
+            unresolvedLoans: [] as any[]
+        };
+        
+        // Analyze Appointments
+        for (const appt of rawAppointments) {
+            const workerId = appt.worker_id;
+            let issueType = '';
+            let details = '';
+            
+            if (workerId === undefined || workerId === null) {
+                issueType = 'MISSING_WORKER_ID';
+                details = 'worker_id field is missing or null';
+            } else if (!isNativeObjectId(workerId)) {
+                issueType = 'INVALID_WORKER_ID_TYPE';
+                details = `worker_id is of type ${typeof workerId} ("${workerId}") instead of ObjectId`;
+            } else {
+                const userExists = rawUsers.some(u => u._id.toString() === workerId.toString());
+                if (!userExists) {
+                    issueType = 'REFERENCED_USER_NOT_FOUND';
+                    details = `worker_id (${workerId.toString()}) does not match any user`;
+                }
+            }
+            
+            if (issueType) {
+                const issueRecord = {
+                    id: appt._id ? appt._id.toString() : 'unknown',
+                    client_name: appt.client_name,
+                    date: appt.date,
+                    worker_id: workerId ? workerId.toString() : null,
+                    issue: issueType,
+                    details: details
+                };
+                report.appointmentsIssues.push(issueRecord);
+                
+                if (repair) {
+                    let repaired = false;
+                    if (workerId) {
+                        const workerIdStr = workerId.toString();
+                        const matchingUser = findUserRef(workerIdStr);
+                        if (matchingUser) {
+                            await appointmentsCollection.updateOne(
+                                { _id: appt._id },
+                                { $set: { worker_id: matchingUser._id } }
+                            );
+                            repaired = true;
+                            report.repairedAppointmentsCount++;
+                        }
+                    }
+                    if (!repaired) {
+                        report.unresolvedAppointments.push(issueRecord);
+                    }
+                }
+            }
+        }
+        
+        // Analyze Loans
+        for (const loan of rawLoans) {
+            const workerId = loan.worker_id;
+            let issueType = '';
+            let details = '';
+            
+            if (workerId === undefined || workerId === null) {
+                issueType = 'MISSING_WORKER_ID';
+                details = 'worker_id field is missing or null';
+            } else if (!isNativeObjectId(workerId)) {
+                issueType = 'INVALID_WORKER_ID_TYPE';
+                details = `worker_id is of type ${typeof workerId} ("${workerId}") instead of ObjectId`;
+            } else {
+                const userExists = rawUsers.some(u => u._id.toString() === workerId.toString());
+                if (!userExists) {
+                    issueType = 'REFERENCED_USER_NOT_FOUND';
+                    details = `worker_id (${workerId.toString()}) does not match any user`;
+                }
+            }
+            
+            if (issueType) {
+                const issueRecord = {
+                    id: loan._id ? loan._id.toString() : 'unknown',
+                    amount: loan.amount,
+                    date: loan.date,
+                    worker_id: workerId ? workerId.toString() : null,
+                    issue: issueType,
+                    details: details
+                };
+                report.loansIssues.push(issueRecord);
+                
+                if (repair) {
+                    let repaired = false;
+                    if (workerId) {
+                        const workerIdStr = workerId.toString();
+                        const matchingUser = findUserRef(workerIdStr);
+                        if (matchingUser) {
+                            await loansCollection.updateOne(
+                                { _id: loan._id },
+                                { $set: { worker_id: matchingUser._id } }
+                            );
+                            repaired = true;
+                            report.repairedLoansCount++;
+                        }
+                    }
+                    if (!repaired) {
+                        report.unresolvedLoans.push(issueRecord);
+                    }
+                }
+            }
+        }
+        
+        res.json({
+            success: true,
+            repairAttempted: repair,
+            report: report
+        });
+        
+    } catch (err: any) {
+        console.error('Error running DB diagnostics:', err);
+        res.status(500).json({ error: 'DB diagnostics failed', details: err.message, stack: err.stack });
+    }
 });
 
 // Export the app for Vercel
