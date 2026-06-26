@@ -506,6 +506,7 @@ app.get('/api/admin/db-diagnostic', authenticateToken, async (req: any, res: any
             totalAppointments: rawAppointments.length,
             totalLoans: rawLoans.length,
             totalUsers: rawUsers.length,
+            users: rawUsers.map(u => ({ id: u._id ? u._id.toString() : 'unknown', name: u.name, role: u.role })),
             appointmentsIssues: [] as any[],
             loansIssues: [] as any[],
             repairedAppointmentsCount: 0,
