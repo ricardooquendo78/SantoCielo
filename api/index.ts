@@ -38,6 +38,9 @@ const AppointmentSchema = new mongoose.Schema({
     observation: { type: String }
 });
 AppointmentSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
+AppointmentSchema.index({ status: 1, date: -1, time: -1 });
+AppointmentSchema.index({ date: -1, time: 1 });
+AppointmentSchema.index({ worker_id: 1, status: 1 });
 const Appointment = (mongoose.models.Appointment || mongoose.model('Appointment', AppointmentSchema)) as any;
 
 const ServiceSchema = new mongoose.Schema({
@@ -54,6 +57,7 @@ const LoanSchema = new mongoose.Schema({
     date: { type: String }
 });
 LoanSchema.set('toJSON', { virtuals: true, versionKey: false, transform: (doc: any, ret: any) => { ret.id = ret._id; delete ret._id; } });
+LoanSchema.index({ date: -1 });
 const Loan = (mongoose.models.Loan || mongoose.model('Loan', LoanSchema)) as any;
 
 const app = express();
