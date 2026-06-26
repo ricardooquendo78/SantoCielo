@@ -482,6 +482,12 @@ app.get('/api/admin/db-diagnostic', authenticateToken, async (req: any, res: any
         const loansCollection = db.collection('loans');
         const usersCollection = db.collection('users');
         
+        // Build database indexes explicitly to bypass serverless startup limitations
+        await appointmentsCollection.createIndex({ status: 1, date: -1, time: -1 });
+        await appointmentsCollection.createIndex({ date: -1, time: 1 });
+        await appointmentsCollection.createIndex({ worker_id: 1, status: 1 });
+        await loansCollection.createIndex({ date: -1 });
+        
         const rawAppointments = await appointmentsCollection.find({}).toArray();
         const rawLoans = await loansCollection.find({}).toArray();
         const rawUsers = await usersCollection.find({}).toArray();
